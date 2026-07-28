@@ -56,5 +56,6 @@ public static class MauiProgram
 		services.AddSingleton<IMarkdownRenderer, MarkdownRenderer>();
 
 		services.AddScoped<IEntryService, EntryService>();
+		services.AddScoped<IAnalyticsService, AnalyticsService>();
 	}
 }
