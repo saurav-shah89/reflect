@@ -1,0 +1,370 @@
+@page "/journal"
+@inject IEntryService EntryService
+@inject IReferenceDataService ReferenceData
+@inject IMarkdownRenderer Markdown
+@inject NavigationManager Navigation
+@inject ILogger<Journal> Logger
+
+<PageTitle>Journal &middot; Reflect</PageTitle>
+
+<MudText Typo="Typo.h4" GutterBottom="true">Journal</MudText>
+<MudText Typo="Typo.subtitle1" Class="mb-4">Everything you have written, newest first.</MudText>
+
+@if (_loadFailure is not null)
+{
+    <MudAlert Severity="Severity.Error">@_loadFailure</MudAlert>
+}
+else
+{
+    <MudTextField T="string"
+                  Value="_searchText"
+                  ValueChanged="OnSearchTextChanged"
+                  Label="Search titles and content"
+                  Variant="Variant.Outlined"
+                  Adornment="Adornment.Start"
+                  AdornmentIcon="@Icons.Material.Filled.Search"
+                  Immediate="true"
+                  DebounceInterval="300"
+                  Clearable="true"
+                  Class="mb-3" />
+
+    <MudExpansionPanels Elevation="0" Class="mb-4">
+        <MudExpansionPanel Expanded="_filtersExpanded" ExpandedChanged="@(v => _filtersExpanded = v)">
+            <TitleContent>
+                <div class="d-flex align-center gap-2">
+                    <MudIcon Icon="@Icons.Material.Filled.FilterList" Size="Size.Small" />
+                    <MudText Typo="Typo.body1">Filters</MudText>
+                    @if (ActiveFilterCount > 0)
+                    {
+                        <MudChip T="string" Size="Size.Small" Color="Color.Primary"
+                                 Text="@($"{ActiveFilterCount} active")" />
+                    }
+                </div>
+            </TitleContent>
+            <ChildContent>
+                <MudGrid>
+                    <MudItem xs="12" md="6">
+                        <MudDateRangePicker Label="Date range"
+                                            DateRange="_dateRange"
+                                            DateRangeChanged="OnDateRangeChanged"
+                                            Variant="Variant.Outlined"
+                                            Clearable="true"
+                                            MaxDate="DateTime.Today" />
+                    </MudItem>
+
+                    <MudItem xs="12" md="6">
+                        <MudSelect T="int"
+                                   Label="Category"
+                                   Value="_categoryId"
+                                   ValueChanged="OnCategoryChanged"
+                                   Variant="Variant.Outlined"
+                                   Clearable="true">
+                            @foreach (var category in _categories)
+                            {
+                                <MudSelectItem T="int" Value="@category.Id">@category.Name</MudSelectItem>
+                            }
+                        </MudSelect>
+                    </MudItem>
+
+                    <MudItem xs="12" md="6">
+                        <MudSelect T="int"
+                                   Label="Moods"
+                                   MultiSelection="true"
+                                   SelectedValues="_moodIds"
+                                   SelectedValuesChanged="OnMoodsChanged"
+                                   Variant="Variant.Outlined"
+                                   MultiSelectionTextFunc="@(v => $"{v.Count} mood(s)")">
+                            @foreach (var mood in _moods)
+                            {
+                                <MudSelectItem T="int" Value="@mood.Id">
+                                    @mood.Name &middot; @mood.Category
+                                </MudSelectItem>
+                            }
+                        </MudSelect>
+                    </MudItem>
+
+                    <MudItem xs="12" md="6">
+                        <MudSelect T="int"
+                                   Label="Tags"
+                                   MultiSelection="true"
+                                   SelectedValues="_tagIds"
+                                   SelectedValuesChanged="OnTagsChanged"
+                                   Variant="Variant.Outlined"
+                                   MultiSelectionTextFunc="@(v => $"{v.Count} tag(s)")">
+                            @foreach (var tag in _tags)
+                            {
+                                <MudSelectItem T="int" Value="@tag.Id">@tag.Name</MudSelectItem>
+                            }
+                        </MudSelect>
+                    </MudItem>
+                </MudGrid>
+
+                <div class="d-flex justify-end mt-3">
+                    <MudButton Variant="Variant.Text"
+                               StartIcon="@Icons.Material.Filled.Clear"
+                               Disabled="@(ActiveFilterCount == 0 && string.IsNullOrWhiteSpace(_searchText))"
+                               OnClick="ClearFiltersAsync">Clear all</MudButton>
+                </div>
+            </ChildContent>
+        </MudExpansionPanel>
+    </MudExpansionPanels>
+
+    <div class="d-flex align-center justify-space-between mb-2" style="width: 100%;">
+        <MudText Typo="Typo.body2">
+            @if (_isSearching)
+            {
+                <span>Searching…</span>
+            }
+            else
+            {
+                <span>@_result.TotalCount result@(_result.TotalCount == 1 ? "" : "s")</span>
+            }
+        </MudText>
+
+        <MudSelect T="int" Value="_pageSize" ValueChanged="OnPageSizeChanged"
+                   Label="Per page" Dense="true" Variant="Variant.Text" Style="max-width: 110px;">
+            @foreach (var size in PageSizes)
+            {
+                <MudSelectItem T="int" Value="@size">@size</MudSelectItem>
+            }
+        </MudSelect>
+    </div>
+
+    @if (_isSearching && _result.TotalCount == 0)
+    {
+        <MudProgressLinear Indeterminate="true" Color="Color.Primary" Class="my-4" />
+    }
+    else if (_result.TotalCount == 0)
+    {
+        <MudAlert Severity="Severity.Normal" Variant="Variant.Outlined">
+            @(HasAnyCriteria
+                ? "No entries match these filters."
+                : "Nothing written yet. Your journal starts when you write an entry.")
+        </MudAlert>
+    }
+    else
+    {
+        @foreach (var entry in _result.Items)
+        {
+            <MudCard Outlined="true" Class="mb-3 entry-card" @onclick="@(() => OpenDate(entry.EntryDate))">
+                <MudCardContent>
+                    <div class="d-flex align-center justify-space-between">
+                        <MudText Typo="Typo.h6">@entry.Title</MudText>
+                        <MudText Typo="Typo.caption">@entry.EntryDate.ToString("ddd d MMM yyyy")</MudText>
+                    </div>
+
+                    <div class="d-flex flex-wrap align-center gap-1 my-2">
+                        <MudChip T="string" Size="Size.Small" Color="@MoodColour(entry.PrimaryMoodId)"
+                                 Text="@MoodName(entry.PrimaryMoodId)" />
+                        @foreach (var secondary in SecondaryMoods(entry))
+                        {
+                            <MudChip T="string" Size="Size.Small" Variant="Variant.Outlined"
+                                     Color="@MoodColour(secondary)" Text="@MoodName(secondary)" />
+                        }
+                        @if (entry.CategoryId is int categoryId)
+                        {
+                            <MudChip T="string" Size="Size.Small" Variant="Variant.Text"
+                                     Icon="@Icons.Material.Filled.Folder" Text="@CategoryName(categoryId)" />
+                        }
+                    </div>
+
+                    <MudText Typo="Typo.body2" Class="entry-snippet">@Snippet(entry.Content)</MudText>
+                    <MudText Typo="Typo.caption" Class="mt-2 d-block">@entry.WordCount words</MudText>
+                </MudCardContent>
+            </MudCard>
+        }
+
+        @if (_result.TotalPages > 1)
+        {
+            <div class="d-flex justify-center mt-4">
+                <MudPagination Count="_result.TotalPages"
+                               Selected="_result.Page"
+                               SelectedChanged="OnPageChanged"
+                               Color="Color.Primary"
+                               ShowFirstButton="true"
+                               ShowLastButton="true" />
+            </div>
+        }
+    }
+}
+
+@code {
+    private static readonly int[] PageSizes = { 5, 10, 25, 50 };
+    private const int SnippetLength = 220;
+
+    private string _searchText = string.Empty;
+    private DateRange? _dateRange;
+    private int _categoryId;
+    private IReadOnlyCollection<int> _moodIds = Array.Empty<int>();
+    private IReadOnlyCollection<int> _tagIds = Array.Empty<int>();
+
+    private int _pageSize = 10;
+    private bool _filtersExpanded;
+    private bool _isSearching = true;
+    private string? _loadFailure;
+
+    private PagedResult<JournalEntry> _result = PagedResult<JournalEntry>.Empty(10);
+
+    private IReadOnlyList<Mood> _moods = Array.Empty<Mood>();
+    private IReadOnlyList<Tag> _tags = Array.Empty<Tag>();
+    private IReadOnlyList<Category> _categories = Array.Empty<Category>();
+    private IReadOnlyDictionary<int, Mood> _moodLookup = new Dictionary<int, Mood>();
+
+    private int ActiveFilterCount =>
+        (_dateRange is not null ? 1 : 0) +
+        (_categoryId > 0 ? 1 : 0) +
+        (_moodIds.Count > 0 ? 1 : 0) +
+        (_tagIds.Count > 0 ? 1 : 0);
+
+    private bool HasAnyCriteria => ActiveFilterCount > 0 || !string.IsNullOrWhiteSpace(_searchText);
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            _moods = await ReferenceData.GetMoodsAsync();
+            _tags = await ReferenceData.GetTagsAsync();
+            _categories = await ReferenceData.GetCategoriesAsync();
+            _moodLookup = await ReferenceData.GetMoodLookupAsync();
+
+            await SearchAsync(page: 1);
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Failed to initialise the journal page");
+            _loadFailure = $"Could not load the journal: {ex.Message}";
+            _isSearching = false;
+        }
+    }
+
+    /// <summary>
+    /// Runs the query. Filtering and paging happen in SQL rather than in memory,
+    /// so only the page being shown is materialised.
+    /// </summary>
+    private async Task SearchAsync(int page)
+    {
+        _isSearching = true;
+
+        try
+        {
+            var query = new EntryQuery
+            {
+                SearchText = _searchText,
+                FromDate = _dateRange?.Start,
+                ToDate = _dateRange?.End,
+                CategoryId = _categoryId > 0 ? _categoryId : null,
+                MoodIds = _moodIds,
+                TagIds = _tagIds
+            };
+
+            _result = await EntryService.SearchAsync(query, page, _pageSize);
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Search failed");
+            _loadFailure = $"Search failed: {ex.Message}";
+        }
+        finally
+        {
+            _isSearching = false;
+        }
+    }
+
+    // Any change to the criteria returns to page one: staying on page 5 of a
+    // result set that just shrank to two pages would show nothing.
+    private async Task OnSearchTextChanged(string value)
+    {
+        _searchText = value ?? string.Empty;
+        await SearchAsync(page: 1);
+    }
+
+    private async Task OnDateRangeChanged(DateRange? range)
+    {
+        _dateRange = range;
+        await SearchAsync(page: 1);
+    }
+
+    private async Task OnCategoryChanged(int categoryId)
+    {
+        _categoryId = categoryId;
+        await SearchAsync(page: 1);
+    }
+
+    private async Task OnMoodsChanged(IReadOnlyCollection<int> values)
+    {
+        _moodIds = values.ToArray();
+        await SearchAsync(page: 1);
+    }
+
+    private async Task OnTagsChanged(IReadOnlyCollection<int> values)
+    {
+        _tagIds = values.ToArray();
+        await SearchAsync(page: 1);
+    }
+
+    private async Task OnPageSizeChanged(int size)
+    {
+        _pageSize = size;
+        await SearchAsync(page: 1);
+    }
+
+    private async Task OnPageChanged(int page) => await SearchAsync(page);
+
+    private async Task ClearFiltersAsync()
+    {
+        _searchText = string.Empty;
+        _dateRange = null;
+        _categoryId = 0;
+        _moodIds = Array.Empty<int>();
+        _tagIds = Array.Empty<int>();
+
+        await SearchAsync(page: 1);
+    }
+
+    private void OpenDate(DateTime date) => Navigation.NavigateTo($"/write/{date:yyyy-MM-dd}");
+
+    private static IEnumerable<int> SecondaryMoods(JournalEntry entry) =>
+        new[] { entry.SecondaryMoodOneId, entry.SecondaryMoodTwoId }
+            .Where(id => id is > 0)
+            .Select(id => id!.Value);
+
+    private string MoodName(int moodId) =>
+        _moodLookup.TryGetValue(moodId, out var mood) ? mood.Name : "Unknown";
+
+    /// <summary>Colours a mood chip by its category, so tone reads at a glance.</summary>
+    private Color MoodColour(int moodId)
+    {
+        if (!_moodLookup.TryGetValue(moodId, out var mood))
+        {
+            return Color.Default;
+        }
+
+        return mood.Category switch
+        {
+            MoodCategory.Positive => Color.Success,
+            MoodCategory.Negative => Color.Error,
+            _ => Color.Info
+        };
+    }
+
+    private string CategoryName(int categoryId) =>
+        _categories.FirstOrDefault(c => c.Id == categoryId)?.Name ?? "Uncategorised";
+
+    /// <summary>Plain-text preview, so Markdown syntax does not leak into the summary.</summary>
+    private string Snippet(string content)
+    {
+        if (string.IsNullOrWhiteSpace(content))
+        {
+            return "(no content)";
+        }
+
+        var text = Markdown.ToPlainText(content).Replace('\n', ' ').Replace('\r', ' ').Trim();
+
+        while (text.Contains("  "))
+        {
+            text = text.Replace("  ", " ");
+        }
+
+        return text.Length <= SnippetLength ? text : text[..SnippetLength].TrimEnd() + "…";
+    }
+}

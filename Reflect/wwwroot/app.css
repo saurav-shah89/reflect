@@ -136,6 +136,16 @@
     opacity: 0.75;
 }
 
+/* Whole result card is clickable, so signal that on hover. */
+.entry-card {
+    cursor: pointer;
+    transition: border-color 120ms ease;
+}
+
+.entry-card:hover {
+    border-color: var(--mud-palette-primary);
+}
+
 /* Keeps content clear of the notch on iOS. No effect on other platforms. */
 .status-bar-safe-area {
     display: none;
