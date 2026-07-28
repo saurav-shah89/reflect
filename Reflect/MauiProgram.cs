@@ -48,6 +48,13 @@ public static class MauiProgram
 	private static void RegisterApplicationServices(IServiceCollection services)
 	{
 		services.AddSingleton<IJournalDatabase, JournalDatabase>();
+
+		// Reference data is cached in memory and shared across screens, so it is a
+		// singleton. The Markdown pipeline is immutable and expensive to build,
+		// so it is shared too.
+		services.AddSingleton<IReferenceDataService, ReferenceDataService>();
+		services.AddSingleton<IMarkdownRenderer, MarkdownRenderer>();
+
 		services.AddScoped<IEntryService, EntryService>();
 	}
 }
