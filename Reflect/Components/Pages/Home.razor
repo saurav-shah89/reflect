@@ -24,17 +24,25 @@ else
             @if (_todaysEntry is null)
             {
                 <MudText Typo="Typo.h6">Nothing written yet</MudText>
-                <MudText Typo="Typo.body2" Class="mt-2">
-                    You have not made an entry for today. The editor arrives in the next step.
+                <MudText Typo="Typo.body2" Class="mt-2 mb-4">
+                    You have not made an entry for today.
                 </MudText>
+                <MudButton Variant="Variant.Filled"
+                           Color="Color.Primary"
+                           StartIcon="@Icons.Material.Filled.Edit"
+                           Href="/write">Write today's entry</MudButton>
             }
             else
             {
                 <MudText Typo="Typo.h6">@_todaysEntry.Title</MudText>
-                <MudText Typo="Typo.caption">
+                <MudText Typo="Typo.caption" Class="mb-4 d-block">
                     @_todaysEntry.WordCount words &middot;
                     last updated @_todaysEntry.UpdatedAt.ToString("HH:mm")
                 </MudText>
+                <MudButton Variant="Variant.Outlined"
+                           Color="Color.Primary"
+                           StartIcon="@Icons.Material.Filled.Edit"
+                           Href="/write">Edit today's entry</MudButton>
             }
         </MudCardContent>
     </MudCard>

@@ -1,0 +1,512 @@
+@page "/write"
+@page "/write/{DateText}"
+@inject IEntryService EntryService
+@inject IReferenceDataService ReferenceData
+@inject IMarkdownRenderer Markdown
+@inject ISnackbar Snackbar
+@inject IDialogService DialogService
+@inject NavigationManager Navigation
+@inject ILogger<Write> Logger
+
+<PageTitle>@(_isExisting ? "Edit entry" : "New entry") &middot; Reflect</PageTitle>
+
+@if (_isLoading)
+{
+    <MudProgressCircular Indeterminate="true" Color="Color.Primary" />
+}
+else if (_fatalError is not null)
+{
+    <MudAlert Severity="Severity.Error">@_fatalError</MudAlert>
+}
+else
+{
+    <div class="d-flex align-center justify-space-between mb-2">
+        <div>
+            <MudText Typo="Typo.h4">@(_isExisting ? "Edit entry" : "New entry")</MudText>
+            <MudText Typo="Typo.subtitle1">@_date.ToString("dddd, d MMMM yyyy")</MudText>
+        </div>
+        <div class="d-flex align-center gap-2">
+            <MudIconButton Icon="@Icons.Material.Filled.ChevronLeft"
+                           OnClick="@(() => GoToDate(_date.AddDays(-1)))"
+                           Title="Previous day" aria-label="Previous day" />
+            <MudButton Variant="Variant.Text" OnClick="@(() => GoToDate(DateTime.Today))">Today</MudButton>
+            <MudIconButton Icon="@Icons.Material.Filled.ChevronRight"
+                           OnClick="@(() => GoToDate(_date.AddDays(1)))"
+                           Disabled="@(_date.Date >= DateTime.Today)"
+                           Title="Next day" aria-label="Next day" />
+        </div>
+    </div>
+
+    @if (_isExisting)
+    {
+        <MudText Typo="Typo.caption" Class="mb-4 d-block">
+            Created @_createdAt.ToString("d MMM yyyy HH:mm")
+            &middot; last updated @_updatedAt.ToString("d MMM yyyy HH:mm")
+            &middot; @_liveWordCount words
+        </MudText>
+    }
+    else
+    {
+        <MudText Typo="Typo.caption" Class="mb-4 d-block">@_liveWordCount words</MudText>
+    }
+
+    @if (_validationError is not null)
+    {
+        <MudAlert Severity="Severity.Warning" Class="mb-4">@_validationError</MudAlert>
+    }
+
+    <MudTextField @bind-Value="_title"
+                  Label="Title"
+                  Variant="Variant.Outlined"
+                  MaxLength="200"
+                  Immediate="true"
+                  Class="mb-4" />
+
+    <MudGrid Class="mb-2">
+        <MudItem xs="12" md="6">
+            <MudText Typo="Typo.subtitle2" Class="mb-1">Write</MudText>
+            <MudTextField @bind-Value="_content"
+                          Variant="Variant.Outlined"
+                          Lines="18"
+                          Immediate="true"
+                          TextChanged="OnContentChanged"
+                          Placeholder="Markdown is supported: **bold**, *italics*, # headings, - lists, [links](url)" />
+        </MudItem>
+
+        <MudItem xs="12" md="6">
+            <MudText Typo="Typo.subtitle2" Class="mb-1">Preview</MudText>
+            <MudPaper Outlined="true" Class="pa-4 markdown-preview">
+                @if (string.IsNullOrWhiteSpace(_content))
+                {
+                    <MudText Typo="Typo.body2">Nothing to preview yet.</MudText>
+                }
+                else
+                {
+                    @((MarkupString)Markdown.ToHtml(_content))
+                }
+            </MudPaper>
+        </MudItem>
+    </MudGrid>
+
+    <MudText Typo="Typo.h6" Class="mt-6 mb-2">How was your day?</MudText>
+
+    <MudGrid>
+        <MudItem xs="12" md="4">
+            <MudSelect T="int"
+                       Value="_primaryMoodId"
+                       ValueChanged="OnPrimaryMoodChanged"
+                       Label="Primary mood (required)"
+                       Variant="Variant.Outlined"
+                       Required="true">
+                @foreach (var mood in _moods)
+                {
+                    <MudSelectItem T="int" Value="@mood.Id">
+                        @mood.Name &middot; @mood.Category
+                    </MudSelectItem>
+                }
+            </MudSelect>
+        </MudItem>
+
+        <MudItem xs="12" md="4">
+            <MudSelect T="int"
+                       MultiSelection="true"
+                       SelectedValues="_secondaryMoodIds"
+                       SelectedValuesChanged="OnSecondaryMoodsChanged"
+                       Label="Secondary moods (up to 2)"
+                       Variant="Variant.Outlined"
+                       MultiSelectionTextFunc="@(values => string.Join(", ", values))">
+                @foreach (var mood in _moods.Where(m => m.Id != _primaryMoodId))
+                {
+                    <MudSelectItem T="int" Value="@mood.Id">
+                        @mood.Name &middot; @mood.Category
+                    </MudSelectItem>
+                }
+            </MudSelect>
+        </MudItem>
+
+        <MudItem xs="12" md="4">
+            <MudSelect T="int"
+                       Value="_categoryId"
+                       ValueChanged="@(value => _categoryId = value)"
+                       Label="Category"
+                       Variant="Variant.Outlined"
+                       Clearable="true">
+                @foreach (var category in _categories)
+                {
+                    <MudSelectItem T="int" Value="@category.Id">@category.Name</MudSelectItem>
+                }
+            </MudSelect>
+        </MudItem>
+    </MudGrid>
+
+    <MudText Typo="Typo.h6" Class="mt-6 mb-2">Tags</MudText>
+
+    <MudSelect T="int"
+               MultiSelection="true"
+               SelectedValues="_selectedTagIds"
+               SelectedValuesChanged="@(values => _selectedTagIds = values.ToHashSet())"
+               Label="Tags"
+               Variant="Variant.Outlined"
+               MultiSelectionTextFunc="@(values => $"{values.Count} tag(s) selected")"
+               Class="mb-2">
+        @foreach (var tag in _tags)
+        {
+            <MudSelectItem T="int" Value="@tag.Id">@tag.Name</MudSelectItem>
+        }
+    </MudSelect>
+
+    <div class="d-flex align-center gap-2 mb-2">
+        <MudTextField @bind-Value="_newTagName"
+                      Label="Add a new tag"
+                      Variant="Variant.Outlined"
+                      MaxLength="40"
+                      Immediate="true"
+                      OnKeyDown="OnNewTagKeyDown"
+                      Style="max-width: 320px;" />
+        <MudButton Variant="Variant.Filled"
+                   StartIcon="@Icons.Material.Filled.Add"
+                   Disabled="@string.IsNullOrWhiteSpace(_newTagName)"
+                   OnClick="AddTagAsync">Add</MudButton>
+    </div>
+
+    @if (_selectedTagIds.Count > 0)
+    {
+        <div class="d-flex flex-wrap gap-1 mb-4">
+            @foreach (var tag in _tags.Where(t => _selectedTagIds.Contains(t.Id)))
+            {
+                <MudChip T="string"
+                         Text="@tag.Name"
+                         Color="Color.Primary"
+                         Size="Size.Small"
+                         OnClose="@(() => RemoveTag(tag.Id))" />
+            }
+        </div>
+    }
+
+    <MudDivider Class="my-6" />
+
+    <div class="d-flex gap-2">
+        <MudButton Variant="Variant.Filled"
+                   Color="Color.Primary"
+                   StartIcon="@Icons.Material.Filled.Save"
+                   Disabled="_isSaving"
+                   OnClick="SaveAsync">
+            @(_isExisting ? "Save changes" : "Create entry")
+        </MudButton>
+
+        @if (_isExisting)
+        {
+            <MudButton Variant="Variant.Outlined"
+                       Color="Color.Error"
+                       StartIcon="@Icons.Material.Filled.Delete"
+                       Disabled="_isSaving"
+                       OnClick="DeleteAsync">Delete</MudButton>
+        }
+
+        <MudSpacer />
+        <MudButton Variant="Variant.Text" OnClick="@(() => Navigation.NavigateTo("/"))">Close</MudButton>
+    </div>
+}
+
+@code {
+    /// <summary>Date segment of the route, as yyyy-MM-dd. Absent means today.</summary>
+    [Parameter]
+    public string? DateText { get; set; }
+
+    private const int MaxSecondaryMoods = 2;
+
+    private DateTime _date = DateTime.Today;
+    private int _entryId;
+    private bool _isExisting;
+    private DateTime _createdAt;
+    private DateTime _updatedAt;
+
+    private string _title = string.Empty;
+    private string _content = string.Empty;
+    private int _primaryMoodId;
+    private IReadOnlyCollection<int> _secondaryMoodIds = Array.Empty<int>();
+    private int _categoryId;
+    private HashSet<int> _selectedTagIds = new();
+    private string _newTagName = string.Empty;
+
+    private IReadOnlyList<Mood> _moods = Array.Empty<Mood>();
+    private IReadOnlyList<Tag> _tags = Array.Empty<Tag>();
+    private IReadOnlyList<Category> _categories = Array.Empty<Category>();
+
+    private bool _isLoading = true;
+    private bool _isSaving;
+    private string? _validationError;
+    private string? _fatalError;
+    private int _liveWordCount;
+
+    /// <summary>
+    /// Runs on every navigation, including moving between days, so the form
+    /// always reflects the date in the route.
+    /// </summary>
+    protected override async Task OnParametersSetAsync()
+    {
+        _isLoading = true;
+        _validationError = null;
+        _fatalError = null;
+
+        try
+        {
+            _date = ParseDate(DateText);
+
+            if (_date > DateTime.Today)
+            {
+                _fatalError = "You cannot write an entry for a future date.";
+                return;
+            }
+
+            _moods = await ReferenceData.GetMoodsAsync();
+            _tags = await ReferenceData.GetTagsAsync();
+            _categories = await ReferenceData.GetCategoriesAsync();
+
+            await LoadEntryAsync();
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Failed to open the editor for {Date}", _date);
+            _fatalError = $"Could not open the editor: {ex.Message}";
+        }
+        finally
+        {
+            _isLoading = false;
+        }
+    }
+
+    /// <summary>Loads the entry for the current date, or resets to a blank form.</summary>
+    private async Task LoadEntryAsync()
+    {
+        var entry = await EntryService.GetByDateAsync(_date);
+
+        if (entry is null)
+        {
+            _isExisting = false;
+            _entryId = 0;
+            _title = string.Empty;
+            _content = string.Empty;
+            _primaryMoodId = 0;
+            _secondaryMoodIds = Array.Empty<int>();
+            _categoryId = 0;
+            _selectedTagIds = new HashSet<int>();
+        }
+        else
+        {
+            _isExisting = true;
+            _entryId = entry.Id;
+            _title = entry.Title;
+            _content = entry.Content;
+            _primaryMoodId = entry.PrimaryMoodId;
+            _categoryId = entry.CategoryId ?? 0;
+            _createdAt = entry.CreatedAt;
+            _updatedAt = entry.UpdatedAt;
+
+            _secondaryMoodIds = new[] { entry.SecondaryMoodOneId, entry.SecondaryMoodTwoId }
+                .Where(id => id is > 0)
+                .Select(id => id!.Value)
+                .ToArray();
+
+            var tagIds = await EntryService.GetTagIdsAsync(entry.Id);
+            _selectedTagIds = tagIds.ToHashSet();
+        }
+
+        _liveWordCount = CountWords(_content);
+    }
+
+    /// <summary>Parses the route segment, falling back to today when absent or malformed.</summary>
+    private static DateTime ParseDate(string? text) =>
+        DateTime.TryParse(text, out var parsed) ? parsed.Date : DateTime.Today;
+
+    private void GoToDate(DateTime date)
+    {
+        if (date.Date > DateTime.Today)
+        {
+            return;
+        }
+
+        Navigation.NavigateTo($"/write/{date:yyyy-MM-dd}");
+    }
+
+    private void OnContentChanged(string value)
+    {
+        _content = value;
+        _liveWordCount = CountWords(value);
+    }
+
+    /// <summary>
+    /// Changing the primary mood drops it from the secondary selection, since a
+    /// mood cannot occupy two slots at once.
+    /// </summary>
+    private void OnPrimaryMoodChanged(int moodId)
+    {
+        _primaryMoodId = moodId;
+        _secondaryMoodIds = _secondaryMoodIds.Where(id => id != moodId).ToArray();
+    }
+
+    /// <summary>
+    /// Caps the secondary selection at two. Extra picks are dropped rather than
+    /// silently accepted, with a message explaining why.
+    /// </summary>
+    private void OnSecondaryMoodsChanged(IReadOnlyCollection<int> values)
+    {
+        var accepted = values.Where(id => id != _primaryMoodId).ToArray();
+
+        if (accepted.Length > MaxSecondaryMoods)
+        {
+            accepted = accepted.Take(MaxSecondaryMoods).ToArray();
+            Snackbar.Add($"You can pick at most {MaxSecondaryMoods} secondary moods.", Severity.Info);
+        }
+
+        _secondaryMoodIds = accepted;
+    }
+
+    private async Task OnNewTagKeyDown(KeyboardEventArgs args)
+    {
+        if (args.Key == "Enter")
+        {
+            await AddTagAsync();
+        }
+    }
+
+    /// <summary>
+    /// Creates the tag if it is new, then selects it. An existing name resolves
+    /// to the existing tag rather than creating a duplicate.
+    /// </summary>
+    private async Task AddTagAsync()
+    {
+        if (string.IsNullOrWhiteSpace(_newTagName))
+        {
+            return;
+        }
+
+        try
+        {
+            var tag = await ReferenceData.GetOrCreateTagAsync(_newTagName);
+            _tags = await ReferenceData.GetTagsAsync();
+            _selectedTagIds.Add(tag.Id);
+            _newTagName = string.Empty;
+
+            Snackbar.Add($"Tag \"{tag.Name}\" added.", Severity.Success);
+        }
+        catch (ArgumentException ex)
+        {
+            Snackbar.Add(ex.Message, Severity.Warning);
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Failed to add tag {TagName}", _newTagName);
+            Snackbar.Add("Could not add that tag.", Severity.Error);
+        }
+    }
+
+    private void RemoveTag(int tagId) => _selectedTagIds.Remove(tagId);
+
+    private async Task SaveAsync()
+    {
+        _validationError = null;
+
+        // Check here as well as in the service so the message appears beside the
+        // form rather than as a thrown exception.
+        if (string.IsNullOrWhiteSpace(_title))
+        {
+            _validationError = "Give your entry a title before saving.";
+            return;
+        }
+
+        if (_primaryMoodId <= 0)
+        {
+            _validationError = "Choose a primary mood before saving.";
+            return;
+        }
+
+        _isSaving = true;
+
+        try
+        {
+            var secondaries = _secondaryMoodIds.Take(MaxSecondaryMoods).ToArray();
+
+            var entry = new JournalEntry
+            {
+                Id = _entryId,
+                EntryDate = _date,
+                Title = _title,
+                Content = _content,
+                PrimaryMoodId = _primaryMoodId,
+                SecondaryMoodOneId = secondaries.Length > 0 ? secondaries[0] : null,
+                SecondaryMoodTwoId = secondaries.Length > 1 ? secondaries[1] : null,
+                CategoryId = _categoryId > 0 ? _categoryId : null
+            };
+
+            var saved = await EntryService.SaveAsync(entry, _selectedTagIds);
+
+            _entryId = saved.Id;
+            _isExisting = true;
+            _createdAt = saved.CreatedAt;
+            _updatedAt = saved.UpdatedAt;
+            _liveWordCount = saved.WordCount;
+
+            Snackbar.Add("Entry saved.", Severity.Success);
+        }
+        catch (DuplicateEntryDateException ex)
+        {
+            _validationError = ex.Message;
+        }
+        catch (ArgumentException ex)
+        {
+            _validationError = ex.Message;
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Failed to save entry for {Date}", _date);
+            _validationError = $"Could not save: {ex.Message}";
+        }
+        finally
+        {
+            _isSaving = false;
+        }
+    }
+
+    private async Task DeleteAsync()
+    {
+        var confirmed = await DialogService.ShowMessageBoxAsync(
+            "Delete this entry?",
+            $"The entry for {_date:d MMMM yyyy} will be permanently removed.",
+            yesText: "Delete",
+            cancelText: "Cancel");
+
+        if (confirmed != true)
+        {
+            return;
+        }
+
+        _isSaving = true;
+
+        try
+        {
+            await EntryService.DeleteAsync(_entryId);
+            Snackbar.Add("Entry deleted.", Severity.Success);
+            await LoadEntryAsync();
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Failed to delete entry {EntryId}", _entryId);
+            _validationError = $"Could not delete: {ex.Message}";
+        }
+        finally
+        {
+            _isSaving = false;
+        }
+    }
+
+    /// <summary>
+    /// Mirrors the counting rule in EntryService so the live count matches what
+    /// is ultimately stored.
+    /// </summary>
+    private static int CountWords(string? content) =>
+        string.IsNullOrWhiteSpace(content)
+            ? 0
+            : content.Split((char[]?)null, StringSplitOptions.RemoveEmptyEntries)
+                .Count(token => token.Any(char.IsLetterOrDigit));
+}
