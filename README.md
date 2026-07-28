@@ -12,23 +12,27 @@ Built with .NET MAUI Blazor Hybrid for **CS6004NI Application Development**, Cou
 
 ## Project Status
 
-> **Early development.** The foundation is in place; the user-facing features are not built
-> yet. This section is kept honest and current so nobody is misled about what runs today.
+> **In development.** Writing works end to end; the browsing, analytics and security features
+> are not built yet. This section is kept honest and current so nobody is misled about what
+> runs today.
 
 | Area | Status |
 | --- | --- |
 | Project scaffold (.NET 10, four platforms) | Complete — builds and launches on Windows |
 | Domain model (entries, moods, tags, categories, settings) | Complete |
-| SQLite database, schema creation and reference-data seeding | Complete — written, **not yet wired into DI** |
-| `IEntryService` contract, query and paging types | Complete |
-| `EntryService` implementation | Not started |
-| Dependency injection wiring (MudBlazor, database, services) | Not started |
-| User interface | Still the default template pages (Home / Counter / Weather) |
-| Automated tests | None yet |
+| SQLite database, schema creation and reference-data seeding | Complete |
+| `EntryService` — CRUD, search, paging | Complete |
+| Reference data and Markdown services | Complete |
+| Dependency injection and MudBlazor shell | Complete |
+| Entry editor — write, moods, tags, category, delete | Complete |
+| Calendar view, timeline, search UI, streaks, analytics | Not started |
+| Security (PIN/passphrase), PDF export, theme persistence | Not started |
+| Automated test project | None yet — see [Testing](#testing) |
 
-What this means practically: `dotnet build` succeeds and the app opens a window, but that
-window currently shows the stock MAUI Blazor template. The model and data layer compile and
-are committed, but nothing calls them yet. See [Roadmap](#roadmap).
+What this means practically: you can open the app, write a Markdown entry for today or any
+past day, tag it, record moods, save it and delete it, and the data persists in SQLite. What
+you cannot yet do is browse entries by calendar, search them, see analytics, lock the journal
+or export to PDF. See [Roadmap](#roadmap).
 
 ---
 
@@ -53,23 +57,23 @@ are committed, but nothing calls them yet. See [Roadmap](#roadmap).
 
 ## Key Features
 
-These are the twelve features required by the specification. None are implemented yet — this
-is the target, not a description of current behaviour.
+The twelve features required by the specification, with what works today marked. Anything not
+marked done is a target, not a description of current behaviour.
 
-| # | Feature | Description |
-| --- | --- | --- |
-| 1 | Journal entry management | Create, update and delete a single entry per calendar day, with system-generated timestamps |
-| 2 | Markdown writing | Formatting support — bold, italics, lists, headings, links |
-| 3 | Mood tracking | One required primary mood plus up to two optional secondary moods |
-| 4 | Tagging | Pre-built and user-created tags to classify entries |
-| 5 | Calendar navigation | Browse entries through a month view |
-| 6 | Paginated journal view | Timeline list, page by page |
-| 7 | Search and filter | Search title and content; filter by date range, moods, tags or category |
-| 8 | Streak tracking | Current streak, longest streak and missed days |
-| 9 | Theme customisation | Light and dark themes |
-| 10 | Dashboard analytics | Mood distribution, most frequent mood, most used tags, tag breakdown, word-count trends |
-| 11 | Security and privacy | Password or PIN protection for the journal |
-| 12 | Export | Export a date range of entries to PDF |
+| # | Feature | Description | Status |
+| --- | --- | --- | --- |
+| 1 | Journal entry management | Create, update and delete a single entry per calendar day, with system-generated timestamps | Done |
+| 2 | Markdown writing | Formatting support — bold, italics, lists, headings, links | Done |
+| 3 | Mood tracking | One required primary mood plus up to two optional secondary moods | Done |
+| 4 | Tagging | Pre-built and user-created tags to classify entries | Done |
+| 5 | Calendar navigation | Browse entries through a month view | Planned |
+| 6 | Paginated journal view | Timeline list, page by page | Service ready, UI planned |
+| 7 | Search and filter | Search title and content; filter by date range, moods, tags or category | Service ready, UI planned |
+| 8 | Streak tracking | Current streak, longest streak and missed days | Planned |
+| 9 | Theme customisation | Light and dark themes | Toggle works, not yet persisted |
+| 10 | Dashboard analytics | Mood distribution, most frequent mood, most used tags, tag breakdown, word-count trends | Planned |
+| 11 | Security and privacy | Password or PIN protection for the journal | Schema ready, flow planned |
+| 12 | Export | Export a date range of entries to PDF | Planned |
 
 ### Design decisions already made
 
@@ -433,8 +437,15 @@ Runtime constants worth knowing:
 
 ## Testing
 
-**There is no test project yet.** This section documents the intended approach rather than
-existing tests, so the gap is not mistaken for passing coverage.
+**There is no test project in the repository yet.** This section documents the intended
+approach rather than committed tests, so the gap is not mistaken for standing coverage.
+
+The service layer has, however, been verified against a real SQLite file using a throwaway
+harness that linked the actual `EntryService` source — 48 checks covering insert, update, the
+transactional tag rewrite, the one-entry-per-day constraint, every search filter, paging
+edges and cascade-on-delete, all passing. That harness lives outside the repository, so it is
+a point-in-time result rather than a suite that runs on every build. Turning it into a
+committed test project is item 12 on the [Roadmap](#roadmap).
 
 The architecture is already set up to make testing straightforward: services depend on
 `IJournalDatabase`, so a test can supply a connection to an in-memory SQLite database
@@ -562,10 +573,10 @@ The native SQLite library pin has been lost. Confirm `Reflect.csproj` still cont
 direct `SQLitePCLRaw.lib.e_sqlite3` version 2.1.12 reference described in
 [Tech Stack](#tech-stack).
 
-### The app opens but shows the default template pages
+### "You cannot write an entry for a future date"
 
-Expected at the current stage. The UI has not been built yet — see
-[Project Status](#project-status).
+Intended. An entry records a day that has happened, so future dates are refused — otherwise
+streaks could be fabricated by writing ahead. Use the Today button or the back arrow.
 
 ### Database changes do not appear, or data looks stale
 
@@ -589,22 +600,28 @@ dotnet build Reflect/Reflect.csproj -f net10.0-windows10.0.19041.0
 
 Ordered roughly by dependency — earlier items unblock later ones.
 
-1. **`EntryService` implementation** — entry CRUD with the one-per-day rule, tag
-   synchronisation, word counting, and parameterised search across dates, moods and tags.
-2. **Dependency injection wiring** — register MudBlazor, `IJournalDatabase` and the services
+Done:
+
+1. ~~**`EntryService` implementation**~~ — CRUD with the one-per-day rule, tag
+   synchronisation, word counting, and parameterised search.
+2. ~~**Dependency injection wiring**~~ — MudBlazor, `IJournalDatabase` and services registered
    in `MauiProgram`.
-3. **Reference data service** — expose moods, tags and categories to the UI, including
-   creation of custom tags.
-4. **Entry editor** — Markdown input with live preview, mood picker enforcing one primary and
-   at most two secondary, tag and category selection.
-5. **Calendar and timeline views** — month navigation and paginated list.
-6. **Search and filter UI** — bound to `EntryQuery`.
+3. ~~**Reference data service**~~ — moods, tags and categories exposed to the UI, with custom
+   tag creation.
+4. ~~**Entry editor**~~ — Markdown with live preview, mood picker enforcing the primary and
+   two-secondary rules, tag and category selection.
+
+Remaining, ordered roughly by dependency:
+
+5. **Calendar and timeline views** — month navigation and paginated list, both backed by
+   methods `EntryService` already exposes.
+6. **Search and filter UI** — bound to `EntryQuery`; the service side is built and verified.
 7. **Streak service** — current streak, longest streak, missed days.
 8. **Analytics dashboard** — mood distribution, frequent moods, tag breakdown, word-count
    trends, all date-range filterable.
 9. **Security** — PBKDF2 passphrase set-up and unlock screen.
 10. **PDF export** — date-range export.
-11. **Theming** — light and dark, persisted to `AppSettings`.
+11. **Theme persistence** — the toggle works; persist the choice to `AppSettings.Theme`.
 12. **Extract a shared class library** so models and services can be unit tested without the
     MAUI target frameworks, then add the test project.
 
@@ -616,24 +633,24 @@ Where each marking-scheme item is or will be satisfied. Kept current as work lan
 
 | Marking item | Marks | Location | Status |
 | --- | --- | --- | --- |
-| Journal entry management | 5 | `Models/JournalEntry.cs`, `Services/` | Model done, service pending |
-| Markdown writing | 5 | Markdig, entry editor | Pending |
-| Mood tracking | 5 | `Models/Mood.cs`, `Data/SeedData.cs` | Model and seed done |
-| Tagging system | 5 | `Models/Tag.cs`, `Models/EntryTag.cs` | Model and seed done |
-| Calendar navigation | 5 | `Components/Pages/` | Pending |
-| Paginated journal view | 5 | `Models/PagedResult.cs` | Type done, UI pending |
-| Search and filter | 5 | `Models/EntryQuery.cs` | Type done, service and UI pending |
+| Journal entry management | 5 | `Services/EntryService.cs`, `Components/Pages/Write.razor` | Done |
+| Markdown writing | 5 | `Services/MarkdownRenderer.cs`, editor preview pane | Done |
+| Mood tracking | 5 | `Models/Mood.cs`, `Data/SeedData.cs`, editor mood pickers | Done |
+| Tagging system | 5 | `Models/Tag.cs`, `Services/ReferenceDataService.cs`, editor | Done |
+| Calendar navigation | 5 | `EntryService.GetEntryDatesAsync` ready; page pending | Service ready |
+| Paginated journal view | 5 | `Models/PagedResult.cs`, `EntryService.SearchAsync` | Service ready |
+| Search and filter | 5 | `Models/EntryQuery.cs`, `EntryService.SearchAsync` | Service ready |
 | Streak tracking | 5 | Streak service | Pending |
-| Theme customisation | 5 | `Models/AppSettings.Theme` | Field done, UI pending |
+| Theme customisation | 5 | `MainLayout.razor` toggle; `AppSettings.Theme` persistence | Partial |
 | Dashboard analytics | 5 | Analytics service | Pending |
-| Security and privacy | 5 | `Models/AppSettings` PBKDF2 fields | Schema done, flow pending |
+| Security and privacy | 5 | `Models/AppSettings` PBKDF2 fields | Schema ready |
 | Export journals | 5 | Export service | Pending |
 | Code readability | 5 | Throughout — XML doc comments, consistent naming | Ongoing |
-| Code efficiency | 5 | Indexed columns, stored `WordCount`, paged queries | Ongoing |
+| Code efficiency | 5 | Indexed columns, stored `WordCount`, cached reference data, paged queries | Ongoing |
 | Code modularity | 5 | Interface-per-service, DI, layered structure | Ongoing |
-| Error handling | 5 | `DuplicateEntryDateException`, validation, logging | Started |
+| Error handling | 5 | `DuplicateEntryDateException`, validation at both layers, logging, UI fallbacks | Ongoing |
 | Version control | 5 | Conventional Commits, private repository | Ongoing |
-| User experience | 5 | MudBlazor, responsive layout | Pending |
+| User experience | 5 | MudBlazor, responsive grid, live preview, confirmation on delete | Ongoing |
 
 ---
 
