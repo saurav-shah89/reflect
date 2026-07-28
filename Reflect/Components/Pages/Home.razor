@@ -1,5 +1,99 @@
-﻿@page "/"
+@page "/"
+@inject IEntryService EntryService
+@inject ILogger<Home> Logger
 
-<h1>Hello, world!</h1>
+<PageTitle>Today &middot; Reflect</PageTitle>
 
-Welcome to your new app.
+<MudText Typo="Typo.h4" GutterBottom="true">Today</MudText>
+<MudText Typo="Typo.subtitle1" Class="mb-6">@DateTime.Now.ToString("dddd, d MMMM yyyy")</MudText>
+
+@if (_loadFailure is not null)
+{
+    <MudAlert Severity="Severity.Error" Class="mb-4">
+        Could not read the journal: @_loadFailure
+    </MudAlert>
+}
+else if (_isLoading)
+{
+    <MudProgressCircular Indeterminate="true" Color="Color.Primary" />
+}
+else
+{
+    <MudCard Class="mb-6">
+        <MudCardContent>
+            @if (_todaysEntry is null)
+            {
+                <MudText Typo="Typo.h6">Nothing written yet</MudText>
+                <MudText Typo="Typo.body2" Class="mt-2">
+                    You have not made an entry for today. The editor arrives in the next step.
+                </MudText>
+            }
+            else
+            {
+                <MudText Typo="Typo.h6">@_todaysEntry.Title</MudText>
+                <MudText Typo="Typo.caption">
+                    @_todaysEntry.WordCount words &middot;
+                    last updated @_todaysEntry.UpdatedAt.ToString("HH:mm")
+                </MudText>
+            }
+        </MudCardContent>
+    </MudCard>
+
+    <MudText Typo="Typo.h6" GutterBottom="true">Recent entries</MudText>
+
+    @if (_recent.Count == 0)
+    {
+        <MudText Typo="Typo.body2">No entries yet. Your journal starts when you write one.</MudText>
+    }
+    else
+    {
+        <MudList T="JournalEntry" Dense="true">
+            @foreach (var entry in _recent)
+            {
+                <MudListItem T="JournalEntry" Icon="@Icons.Material.Filled.Article">
+                    <MudText Typo="Typo.body1">@entry.Title</MudText>
+                    <MudText Typo="Typo.caption">
+                        @entry.EntryDate.ToString("d MMM yyyy") &middot; @entry.WordCount words
+                    </MudText>
+                </MudListItem>
+            }
+        </MudList>
+    }
+
+    <MudText Typo="Typo.caption" Class="mt-6 d-block">
+        @_totalEntries entr@(_totalEntries == 1 ? "y" : "ies") in your journal.
+    </MudText>
+}
+
+@code {
+    private const int RecentCount = 5;
+
+    private JournalEntry? _todaysEntry;
+    private IReadOnlyList<JournalEntry> _recent = Array.Empty<JournalEntry>();
+    private int _totalEntries;
+    private bool _isLoading = true;
+    private string? _loadFailure;
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            _todaysEntry = await EntryService.GetByDateAsync(DateTime.Today);
+
+            var page = await EntryService.SearchAsync(new EntryQuery(), page: 1, pageSize: RecentCount);
+            _recent = page.Items;
+            _totalEntries = page.TotalCount;
+        }
+        catch (Exception ex)
+        {
+            // Surface the failure in the UI rather than leaving a blank screen,
+            // and log the detail so it can be diagnosed.
+            Logger.LogError(ex, "Failed to load the home page");
+            _loadFailure = ex.Message;
+        }
+        finally
+        {
+            _isLoading = false;
+        }
+    }
+}
