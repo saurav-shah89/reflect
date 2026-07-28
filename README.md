@@ -12,7 +12,7 @@ Built with .NET MAUI Blazor Hybrid for **CS6004NI Application Development**, Cou
 
 ## Project Status
 
-> **In development.** Writing and browsing work end to end; the analytics, security and export
+> **In development.** Writing, browsing and analytics work end to end; the security and export
 > features are not built yet. This section is kept honest and current so nobody is misled
 > about what runs today.
 
@@ -27,15 +27,15 @@ Built with .NET MAUI Blazor Hybrid for **CS6004NI Application Development**, Cou
 | Entry editor — write, moods, tags, category, delete | Complete |
 | Calendar month view | Complete |
 | Paginated journal with search and filters | Complete |
-| Streaks and dashboard analytics | Not started |
+| Streaks and dashboard analytics | Complete |
 | Security (PIN/passphrase), PDF export, theme persistence | Not started |
 | Automated test project | None yet — see [Testing](#testing) |
 
 What this means practically: you can write a Markdown entry for today or any past day, record
 moods, tag and categorise it, browse a month at a glance in the calendar, page through
-everything you have written, and search or filter by text, date range, mood, tag and category.
-What you cannot yet do is see streaks or analytics, lock the journal, or export to PDF. See
-[Roadmap](#roadmap).
+everything you have written, search or filter by text, date range, mood, tag and category, and
+see streaks, mood distribution, tag usage and word-count trends on the dashboard. What you
+cannot yet do is lock the journal or export to PDF. See [Roadmap](#roadmap).
 
 ---
 
@@ -72,9 +72,9 @@ marked done is a target, not a description of current behaviour.
 | 5 | Calendar navigation | Browse entries through a month view | Done |
 | 6 | Paginated journal view | Timeline list, page by page | Done |
 | 7 | Search and filter | Search title and content; filter by date range, moods, tags or category | Done |
-| 8 | Streak tracking | Current streak, longest streak and missed days | Planned |
+| 8 | Streak tracking | Current streak, longest streak and missed days | Done |
 | 9 | Theme customisation | Light and dark themes | Toggle works, not yet persisted |
-| 10 | Dashboard analytics | Mood distribution, most frequent mood, most used tags, tag breakdown, word-count trends | Planned |
+| 10 | Dashboard analytics | Mood distribution, most frequent mood, most used tags, tag breakdown, word-count trends | Done |
 | 11 | Security and privacy | Password or PIN protection for the journal | Schema ready, flow planned |
 | 12 | Export | Export a date range of entries to PDF | Planned |
 
@@ -443,12 +443,18 @@ Runtime constants worth knowing:
 **There is no test project in the repository yet.** This section documents the intended
 approach rather than committed tests, so the gap is not mistaken for standing coverage.
 
-The service layer has, however, been verified against a real SQLite file using a throwaway
-harness that linked the actual `EntryService` source — 48 checks covering insert, update, the
-transactional tag rewrite, the one-entry-per-day constraint, every search filter, paging
-edges and cascade-on-delete, all passing. That harness lives outside the repository, so it is
-a point-in-time result rather than a suite that runs on every build. Turning it into a
-committed test project is item 12 on the [Roadmap](#roadmap).
+The service layer has, however, been verified against real SQLite files using throwaway
+harnesses that linked the actual service sources:
+
+- **`EntryService` — 48 checks.** Insert, update, the transactional tag rewrite, the
+  one-entry-per-day constraint, every search filter, paging edges and cascade-on-delete.
+- **`AnalyticsService` — 47 checks.** Empty journals, streaks broken and at risk, runs
+  spanning a month boundary, percentage totals, uncategorised grouping, all three trend
+  granularities, reversed bounds, and empty ranges producing zeroes rather than NaN.
+
+Both passed in full. Those harnesses live outside the repository, so they are point-in-time
+results rather than a suite that runs on every build. Turning them into a committed test
+project is item 12 on the [Roadmap](#roadmap).
 
 The architecture is already set up to make testing straightforward: services depend on
 `IJournalDatabase`, so a test can supply a connection to an in-memory SQLite database
@@ -616,12 +622,13 @@ Done:
 5. ~~**Calendar view**~~ — month grid marking written days, with that month's entries beside it.
 6. ~~**Timeline and search UI**~~ — paginated cards with text search and date, mood, tag and
    category filters, all resolved in SQL.
+7. ~~**Streak service**~~ — current streak, longest streak, missed days, with a streak counted
+   as alive until a full day passes unwritten.
+8. ~~**Analytics dashboard**~~ — mood distribution, frequent moods, tag usage, category
+   breakdown and word-count trends, date-range filterable.
 
 Remaining, ordered roughly by dependency:
 
-7. **Streak service** — current streak, longest streak, missed days.
-8. **Analytics dashboard** — mood distribution, frequent moods, tag breakdown, word-count
-   trends, all date-range filterable.
 9. **Security** — PBKDF2 passphrase set-up and unlock screen.
 10. **PDF export** — date-range export.
 11. **Theme persistence** — the toggle works; persist the choice to `AppSettings.Theme`.
@@ -643,9 +650,9 @@ Where each marking-scheme item is or will be satisfied. Kept current as work lan
 | Calendar navigation | 5 | `Components/Pages/Calendar.razor` | Done |
 | Paginated journal view | 5 | `Components/Pages/Journal.razor`, `Models/PagedResult.cs` | Done |
 | Search and filter | 5 | `Components/Pages/Journal.razor`, `Models/EntryQuery.cs` | Done |
-| Streak tracking | 5 | Streak service | Pending |
+| Streak tracking | 5 | `Services/AnalyticsService.cs`, `Components/Pages/Dashboard.razor` | Done |
 | Theme customisation | 5 | `MainLayout.razor` toggle; `AppSettings.Theme` persistence | Partial |
-| Dashboard analytics | 5 | Analytics service | Pending |
+| Dashboard analytics | 5 | `Services/AnalyticsService.cs`, `Components/Pages/Dashboard.razor` | Done |
 | Security and privacy | 5 | `Models/AppSettings` PBKDF2 fields | Schema ready |
 | Export journals | 5 | Export service | Pending |
 | Code readability | 5 | Throughout — XML doc comments, consistent naming | Ongoing |
