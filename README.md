@@ -12,9 +12,9 @@ Built with .NET MAUI Blazor Hybrid for **CS6004NI Application Development**, Cou
 
 ## Project Status
 
-> **In development.** Writing works end to end; the browsing, analytics and security features
-> are not built yet. This section is kept honest and current so nobody is misled about what
-> runs today.
+> **In development.** Writing and browsing work end to end; the analytics, security and export
+> features are not built yet. This section is kept honest and current so nobody is misled
+> about what runs today.
 
 | Area | Status |
 | --- | --- |
@@ -25,14 +25,17 @@ Built with .NET MAUI Blazor Hybrid for **CS6004NI Application Development**, Cou
 | Reference data and Markdown services | Complete |
 | Dependency injection and MudBlazor shell | Complete |
 | Entry editor — write, moods, tags, category, delete | Complete |
-| Calendar view, timeline, search UI, streaks, analytics | Not started |
+| Calendar month view | Complete |
+| Paginated journal with search and filters | Complete |
+| Streaks and dashboard analytics | Not started |
 | Security (PIN/passphrase), PDF export, theme persistence | Not started |
 | Automated test project | None yet — see [Testing](#testing) |
 
-What this means practically: you can open the app, write a Markdown entry for today or any
-past day, tag it, record moods, save it and delete it, and the data persists in SQLite. What
-you cannot yet do is browse entries by calendar, search them, see analytics, lock the journal
-or export to PDF. See [Roadmap](#roadmap).
+What this means practically: you can write a Markdown entry for today or any past day, record
+moods, tag and categorise it, browse a month at a glance in the calendar, page through
+everything you have written, and search or filter by text, date range, mood, tag and category.
+What you cannot yet do is see streaks or analytics, lock the journal, or export to PDF. See
+[Roadmap](#roadmap).
 
 ---
 
@@ -66,9 +69,9 @@ marked done is a target, not a description of current behaviour.
 | 2 | Markdown writing | Formatting support — bold, italics, lists, headings, links | Done |
 | 3 | Mood tracking | One required primary mood plus up to two optional secondary moods | Done |
 | 4 | Tagging | Pre-built and user-created tags to classify entries | Done |
-| 5 | Calendar navigation | Browse entries through a month view | Planned |
-| 6 | Paginated journal view | Timeline list, page by page | Service ready, UI planned |
-| 7 | Search and filter | Search title and content; filter by date range, moods, tags or category | Service ready, UI planned |
+| 5 | Calendar navigation | Browse entries through a month view | Done |
+| 6 | Paginated journal view | Timeline list, page by page | Done |
+| 7 | Search and filter | Search title and content; filter by date range, moods, tags or category | Done |
 | 8 | Streak tracking | Current streak, longest streak and missed days | Planned |
 | 9 | Theme customisation | Light and dark themes | Toggle works, not yet persisted |
 | 10 | Dashboard analytics | Mood distribution, most frequent mood, most used tags, tag breakdown, word-count trends | Planned |
@@ -610,12 +613,12 @@ Done:
    tag creation.
 4. ~~**Entry editor**~~ — Markdown with live preview, mood picker enforcing the primary and
    two-secondary rules, tag and category selection.
+5. ~~**Calendar view**~~ — month grid marking written days, with that month's entries beside it.
+6. ~~**Timeline and search UI**~~ — paginated cards with text search and date, mood, tag and
+   category filters, all resolved in SQL.
 
 Remaining, ordered roughly by dependency:
 
-5. **Calendar and timeline views** — month navigation and paginated list, both backed by
-   methods `EntryService` already exposes.
-6. **Search and filter UI** — bound to `EntryQuery`; the service side is built and verified.
 7. **Streak service** — current streak, longest streak, missed days.
 8. **Analytics dashboard** — mood distribution, frequent moods, tag breakdown, word-count
    trends, all date-range filterable.
@@ -637,9 +640,9 @@ Where each marking-scheme item is or will be satisfied. Kept current as work lan
 | Markdown writing | 5 | `Services/MarkdownRenderer.cs`, editor preview pane | Done |
 | Mood tracking | 5 | `Models/Mood.cs`, `Data/SeedData.cs`, editor mood pickers | Done |
 | Tagging system | 5 | `Models/Tag.cs`, `Services/ReferenceDataService.cs`, editor | Done |
-| Calendar navigation | 5 | `EntryService.GetEntryDatesAsync` ready; page pending | Service ready |
-| Paginated journal view | 5 | `Models/PagedResult.cs`, `EntryService.SearchAsync` | Service ready |
-| Search and filter | 5 | `Models/EntryQuery.cs`, `EntryService.SearchAsync` | Service ready |
+| Calendar navigation | 5 | `Components/Pages/Calendar.razor` | Done |
+| Paginated journal view | 5 | `Components/Pages/Journal.razor`, `Models/PagedResult.cs` | Done |
+| Search and filter | 5 | `Components/Pages/Journal.razor`, `Models/EntryQuery.cs` | Done |
 | Streak tracking | 5 | Streak service | Pending |
 | Theme customisation | 5 | `MainLayout.razor` toggle; `AppSettings.Theme` persistence | Partial |
 | Dashboard analytics | 5 | Analytics service | Pending |
