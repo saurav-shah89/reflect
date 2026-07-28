@@ -105,6 +105,37 @@
     padding: 0.3rem 0.6rem;
 }
 
+/*
+ * Calendar day that already has an entry. A dot under the number rather than a
+ * background fill, so it does not compete with the picker's own "selected" and
+ * "today" styling.
+ */
+.calendar-has-entry {
+    position: relative;
+    font-weight: 600;
+}
+
+.calendar-has-entry::after {
+    content: "";
+    position: absolute;
+    bottom: 4px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 5px;
+    height: 5px;
+    border-radius: 50%;
+    background-color: var(--mud-palette-primary);
+}
+
+/* Two-line clamp for the preview text under a list entry. */
+.entry-snippet {
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+    opacity: 0.75;
+}
+
 /* Keeps content clear of the notch on iOS. No effect on other platforms. */
 .status-bar-safe-area {
     display: none;

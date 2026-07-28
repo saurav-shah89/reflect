@@ -1,0 +1,203 @@
+@page "/calendar"
+@inject IEntryService EntryService
+@inject IReferenceDataService ReferenceData
+@inject IMarkdownRenderer Markdown
+@inject NavigationManager Navigation
+@inject ILogger<Calendar> Logger
+
+<PageTitle>Calendar &middot; Reflect</PageTitle>
+
+<MudText Typo="Typo.h4" GutterBottom="true">Calendar</MudText>
+<MudText Typo="Typo.subtitle1" Class="mb-6">
+    Days you have written on are marked. Pick any day to read or edit it.
+</MudText>
+
+@if (_loadFailure is not null)
+{
+    <MudAlert Severity="Severity.Error">@_loadFailure</MudAlert>
+}
+else
+{
+    <MudGrid>
+        <MudItem xs="12" md="6">
+            <MudPaper Outlined="true" Class="pa-2">
+                @* The toolbar shows only a year when nothing is selected, which reads
+                   as an empty banner. The month heading beside the grid covers it. *@
+                <MudDatePicker PickerVariant="PickerVariant.Static"
+                               ShowToolbar="false"
+                               Date="_selectedDate"
+                               DateChanged="OnDateSelected"
+                               PickerMonth="_pickerMonth"
+                               PickerMonthChanged="OnMonthChanged"
+                               MaxDate="DateTime.Today"
+                               AdditionalDateClassesFunc="ClassesForDate"
+                               FirstDayOfWeek="DayOfWeek.Monday"
+                               Elevation="0" />
+            </MudPaper>
+
+            <MudText Typo="Typo.caption" Class="mt-2 d-block">
+                Future days are unavailable — an entry records a day that has happened.
+            </MudText>
+        </MudItem>
+
+        <MudItem xs="12" md="6">
+            <div class="d-flex align-center justify-space-between mb-2">
+                <MudText Typo="Typo.h6">@MonthLabel</MudText>
+                @if (!_isLoading)
+                {
+                    <MudChip T="string" Size="Size.Small" Color="Color.Primary" Variant="Variant.Text"
+                             Text="@($"{_monthEntries.Count} of {DaysToCountThisMonth} days")" />
+                }
+            </div>
+
+            @if (_isLoading)
+            {
+                <MudProgressCircular Indeterminate="true" Color="Color.Primary" />
+            }
+            else if (_monthEntries.Count == 0)
+            {
+                <MudAlert Severity="Severity.Normal" Variant="Variant.Outlined">
+                    Nothing written this month yet.
+                </MudAlert>
+            }
+            else
+            {
+                <MudList T="JournalEntry" Dense="true">
+                    @foreach (var entry in _monthEntries.OrderByDescending(e => e.EntryDate))
+                    {
+                        <MudListItem T="JournalEntry"
+                                     OnClick="@(() => OpenDate(entry.EntryDate))"
+                                     Icon="@Icons.Material.Filled.Article">
+                            <MudText Typo="Typo.body1">@entry.Title</MudText>
+                            <MudText Typo="Typo.caption">
+                                @entry.EntryDate.ToString("ddd d MMM")
+                                &middot; @MoodName(entry.PrimaryMoodId)
+                                &middot; @entry.WordCount words
+                            </MudText>
+                            @if (!string.IsNullOrWhiteSpace(entry.Content))
+                            {
+                                <MudText Typo="Typo.caption" Class="entry-snippet">
+                                    @Snippet(entry.Content)
+                                </MudText>
+                            }
+                        </MudListItem>
+                    }
+                </MudList>
+            }
+        </MudItem>
+    </MudGrid>
+}
+
+@code {
+    private const int SnippetLength = 110;
+
+    private DateTime? _selectedDate;
+    private DateTime? _pickerMonth = new DateTime(DateTime.Today.Year, DateTime.Today.Month, 1);
+
+    private IReadOnlyList<JournalEntry> _monthEntries = Array.Empty<JournalEntry>();
+    private HashSet<DateTime> _datesWithEntries = new();
+    private IReadOnlyDictionary<int, Mood> _moodLookup = new Dictionary<int, Mood>();
+
+    private bool _isLoading = true;
+    private string? _loadFailure;
+
+    private DateTime CurrentMonth => _pickerMonth ?? new DateTime(DateTime.Today.Year, DateTime.Today.Month, 1);
+
+    private string MonthLabel => CurrentMonth.ToString("MMMM yyyy");
+
+    /// <summary>
+    /// Days in the month that could hold an entry. For the current month that is
+    /// today's date, since later days have not happened; for past months it is
+    /// the whole month.
+    /// </summary>
+    private int DaysToCountThisMonth =>
+        CurrentMonth.Year == DateTime.Today.Year && CurrentMonth.Month == DateTime.Today.Month
+            ? DateTime.Today.Day
+            : DateTime.DaysInMonth(CurrentMonth.Year, CurrentMonth.Month);
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            _moodLookup = await ReferenceData.GetMoodLookupAsync();
+            await LoadMonthAsync(CurrentMonth);
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Failed to initialise the calendar");
+            _loadFailure = $"Could not load the calendar: {ex.Message}";
+            _isLoading = false;
+        }
+    }
+
+    /// <summary>
+    /// Loads one month at a time rather than the whole journal, so the query
+    /// stays bounded however long the journal grows.
+    /// </summary>
+    private async Task LoadMonthAsync(DateTime month)
+    {
+        _isLoading = true;
+
+        try
+        {
+            var firstDay = new DateTime(month.Year, month.Month, 1);
+            var lastDay = firstDay.AddMonths(1).AddDays(-1);
+
+            _monthEntries = await EntryService.GetRangeAsync(firstDay, lastDay);
+            _datesWithEntries = _monthEntries.Select(entry => entry.EntryDate.Date).ToHashSet();
+        }
+        finally
+        {
+            _isLoading = false;
+        }
+    }
+
+    private async Task OnMonthChanged(DateTime? month)
+    {
+        _pickerMonth = month;
+
+        if (month is not null)
+        {
+            await LoadMonthAsync(month.Value);
+        }
+    }
+
+    private void OnDateSelected(DateTime? date)
+    {
+        _selectedDate = date;
+
+        if (date is not null)
+        {
+            OpenDate(date.Value);
+        }
+    }
+
+    private void OpenDate(DateTime date) =>
+        Navigation.NavigateTo($"/write/{date:yyyy-MM-dd}");
+
+    /// <summary>
+    /// Marks days that already have an entry so the month is readable at a
+    /// glance. Returned classes are styled in app.css.
+    /// </summary>
+    private string ClassesForDate(DateTime date) =>
+        _datesWithEntries.Contains(date.Date) ? "calendar-has-entry" : string.Empty;
+
+    private string MoodName(int moodId) =>
+        _moodLookup.TryGetValue(moodId, out var mood) ? mood.Name : "Unknown mood";
+
+    /// <summary>
+    /// Renders Markdown down to plain text for the preview line, so syntax
+    /// characters do not leak into the summary.
+    /// </summary>
+    private string Snippet(string content)
+    {
+        var text = Markdown.ToPlainText(content).Replace('\n', ' ').Replace('\r', ' ').Trim();
+
+        while (text.Contains("  "))
+        {
+            text = text.Replace("  ", " ");
+        }
+
+        return text.Length <= SnippetLength ? text : text[..SnippetLength].TrimEnd() + "…";
+    }
+}
