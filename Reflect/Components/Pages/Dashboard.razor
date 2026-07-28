@@ -1,0 +1,375 @@
+@page "/dashboard"
+@inject IAnalyticsService Analytics
+@inject NavigationManager Navigation
+@inject ILogger<Dashboard> Logger
+
+<PageTitle>Dashboard &middot; Reflect</PageTitle>
+
+<MudText Typo="Typo.h4" GutterBottom="true">Dashboard</MudText>
+<MudText Typo="Typo.subtitle1" Class="mb-4">How your journalling is going.</MudText>
+
+@if (_loadFailure is not null)
+{
+    <MudAlert Severity="Severity.Error">@_loadFailure</MudAlert>
+}
+else
+{
+    @* Streaks sit above the range picker because they describe the whole
+       journal, not the selected window. *@
+    <MudGrid Class="mb-2">
+        <MudItem xs="6" md="3">
+            <MudPaper Outlined="true" Class="pa-4 text-center">
+                <MudText Typo="Typo.h3" Color="@(_streaks.CurrentStreak > 0 ? Color.Primary : Color.Default)">
+                    @_streaks.CurrentStreak
+                </MudText>
+                <MudText Typo="Typo.body2">Current streak</MudText>
+                <MudText Typo="Typo.caption">@(_streaks.CurrentStreak == 1 ? "day" : "days")</MudText>
+            </MudPaper>
+        </MudItem>
+        <MudItem xs="6" md="3">
+            <MudPaper Outlined="true" Class="pa-4 text-center">
+                <MudText Typo="Typo.h3">@_streaks.LongestStreak</MudText>
+                <MudText Typo="Typo.body2">Longest streak</MudText>
+                <MudText Typo="Typo.caption">best run so far</MudText>
+            </MudPaper>
+        </MudItem>
+        <MudItem xs="6" md="3">
+            <MudPaper Outlined="true" Class="pa-4 text-center">
+                <MudText Typo="Typo.h3">@_streaks.TotalEntries</MudText>
+                <MudText Typo="Typo.body2">Entries</MudText>
+                <MudText Typo="Typo.caption">all time</MudText>
+            </MudPaper>
+        </MudItem>
+        <MudItem xs="6" md="3">
+            <MudPaper Outlined="true" Class="pa-4 text-center">
+                <MudText Typo="Typo.h3">@_summary.EntryCount</MudText>
+                <MudText Typo="Typo.body2">In range</MudText>
+                <MudText Typo="Typo.caption">of @_summary.EligibleDays day@(_summary.EligibleDays == 1 ? "" : "s")</MudText>
+            </MudPaper>
+        </MudItem>
+    </MudGrid>
+
+    @if (_streaks.StreakAtRisk)
+    {
+        <MudAlert Severity="Severity.Warning" Class="mb-4"
+                  Icon="@Icons.Material.Filled.LocalFireDepartment">
+            Your @_streaks.CurrentStreak-day streak is still alive, but today is not written yet.
+            <MudButton Variant="Variant.Text" Size="Size.Small" Href="/write">Write today's entry</MudButton>
+        </MudAlert>
+    }
+
+    <MudPaper Outlined="true" Class="pa-3 mb-4">
+        <div class="d-flex flex-wrap align-center gap-3">
+            <MudDateRangePicker Label="Date range"
+                                DateRange="_dateRange"
+                                DateRangeChanged="OnRangeChanged"
+                                Variant="Variant.Outlined"
+                                MaxDate="DateTime.Today"
+                                Margin="Margin.Dense"
+                                Style="max-width: 320px;" />
+            @foreach (var preset in Presets)
+            {
+                <MudButton Variant="@(_activePreset == preset.Label ? Variant.Filled : Variant.Outlined)"
+                           Color="Color.Primary"
+                           Size="Size.Small"
+                           OnClick="@(() => ApplyPresetAsync(preset.Label, preset.Days))">
+                    @preset.Label
+                </MudButton>
+            }
+        </div>
+    </MudPaper>
+
+    @if (_isLoading)
+    {
+        <MudProgressLinear Indeterminate="true" Color="Color.Primary" Class="my-4" />
+    }
+    else if (_summary.EntryCount == 0)
+    {
+        <MudAlert Severity="Severity.Normal" Variant="Variant.Outlined">
+            No entries in this range, so there is nothing to chart yet.
+        </MudAlert>
+    }
+    else
+    {
+        <MudGrid>
+            <MudItem xs="12" md="6">
+                <MudPaper Outlined="true" Class="pa-4 h-100">
+                    <MudText Typo="Typo.h6" GutterBottom="true">Mood distribution</MudText>
+                    <MudText Typo="Typo.caption" Class="mb-2 d-block">
+                        Based on each entry's primary mood.
+                    </MudText>
+
+                    <div class="d-flex justify-center">
+                        <MudChart T="double"
+                                  ChartType="ChartType.Donut"
+                                  ChartSeries="_moodSeries"
+                                  ChartLabels="_moodLabels"
+                                  LegendPosition="Position.Bottom"
+                                  Width="260px"
+                                  Height="260px" />
+                    </div>
+
+                    <MudDivider Class="my-3" />
+
+                    @foreach (var share in _summary.MoodDistribution)
+                    {
+                        <div class="d-flex align-center justify-space-between mb-1">
+                            <MudChip T="string" Size="Size.Small" Color="@CategoryColour(share.Category)"
+                                     Text="@share.Category.ToString()" />
+                            <MudText Typo="Typo.body2">
+                                @share.Count entr@(share.Count == 1 ? "y" : "ies") &middot; @share.Percentage%
+                            </MudText>
+                        </div>
+                    }
+
+                    @if (_summary.MostFrequentMood is { } topMood)
+                    {
+                        <MudDivider Class="my-3" />
+                        <MudText Typo="Typo.body2">
+                            Most frequent mood:
+                            <strong>@topMood.Name</strong>
+                            (@topMood.Count time@(topMood.Count == 1 ? "" : "s"))
+                        </MudText>
+                    }
+                </MudPaper>
+            </MudItem>
+
+            <MudItem xs="12" md="6">
+                <MudPaper Outlined="true" Class="pa-4 h-100">
+                    <MudText Typo="Typo.h6" GutterBottom="true">Most used tags</MudText>
+
+                    @if (_summary.TopTags.Count == 0)
+                    {
+                        <MudText Typo="Typo.body2">No tags used in this range.</MudText>
+                    }
+                    else
+                    {
+                        <MudChart T="double"
+                                  ChartType="ChartType.Bar"
+                                  ChartSeries="_tagSeries"
+                                  ChartLabels="_tagLabels"
+                                  LegendPosition="Position.Bottom"
+                                  Height="260px" />
+
+                        <MudDivider Class="my-3" />
+
+                        @foreach (var tag in _summary.TopTags)
+                        {
+                            <div class="mb-2">
+                                <div class="d-flex justify-space-between">
+                                    <MudText Typo="Typo.body2">@tag.Name</MudText>
+                                    <MudText Typo="Typo.caption">
+                                        @tag.Count &middot; @tag.PercentageOfEntries% of entries
+                                    </MudText>
+                                </div>
+                                <MudProgressLinear Color="Color.Primary" Rounded="true" Size="Size.Small"
+                                                   Value="@tag.PercentageOfEntries" />
+                            </div>
+                        }
+                    }
+                </MudPaper>
+            </MudItem>
+
+            <MudItem xs="12" md="7">
+                <MudPaper Outlined="true" Class="pa-4 h-100">
+                    <MudText Typo="Typo.h6" GutterBottom="true">Word count trend</MudText>
+                    <MudText Typo="Typo.caption" Class="mb-2 d-block">
+                        Average words per entry, grouped @GroupingLabel.
+                    </MudText>
+
+                    @if (_summary.WordCountTrend.Count < 2)
+                    {
+                        <MudText Typo="Typo.body2">
+                            Not enough entries in this range to show a trend yet.
+                        </MudText>
+                    }
+                    else
+                    {
+                        <MudChart T="double"
+                                  ChartType="ChartType.Line"
+                                  ChartSeries="_trendSeries"
+                                  ChartLabels="_trendLabels"
+                                  LegendPosition="Position.Bottom"
+                                  Height="280px" />
+                    }
+
+                    <MudDivider Class="my-3" />
+                    <MudText Typo="Typo.body2">
+                        @_summary.TotalWords total words &middot;
+                        @Math.Round(_summary.AverageWords, 1) average per entry
+                    </MudText>
+                </MudPaper>
+            </MudItem>
+
+            <MudItem xs="12" md="5">
+                <MudPaper Outlined="true" Class="pa-4 h-100">
+                    <MudText Typo="Typo.h6" GutterBottom="true">Tag breakdown by category</MudText>
+
+                    @foreach (var category in _summary.CategoryBreakdown)
+                    {
+                        <div class="mb-2">
+                            <div class="d-flex justify-space-between">
+                                <MudText Typo="Typo.body2">@category.Name</MudText>
+                                <MudText Typo="Typo.caption">@category.Count &middot; @category.Percentage%</MudText>
+                            </div>
+                            <MudProgressLinear Color="Color.Secondary" Rounded="true" Size="Size.Small"
+                                               Value="@category.Percentage" />
+                        </div>
+                    }
+
+                    <MudDivider Class="my-3" />
+
+                    <MudText Typo="Typo.h6" GutterBottom="true">Missed days</MudText>
+                    @if (_summary.MissedDays.Count == 0)
+                    {
+                        <MudAlert Severity="Severity.Success" Dense="true" Variant="Variant.Outlined">
+                            Every day in this range has an entry.
+                        </MudAlert>
+                    }
+                    else
+                    {
+                        <MudText Typo="Typo.body2" Class="mb-2">
+                            @_summary.MissedDays.Count of @_summary.EligibleDays days have no entry.
+                        </MudText>
+                        <div class="d-flex flex-wrap gap-1">
+                            @foreach (var day in _summary.MissedDays.OrderByDescending(d => d).Take(MissedDaysShown))
+                            {
+                                <MudChip T="string"
+                                         Size="Size.Small"
+                                         Variant="Variant.Outlined"
+                                         OnClick="@(() => OpenDate(day))"
+                                         Text="@day.ToString("d MMM")" />
+                            }
+                        </div>
+                        @if (_summary.MissedDays.Count > MissedDaysShown)
+                        {
+                            <MudText Typo="Typo.caption" Class="mt-2 d-block">
+                                Showing the @MissedDaysShown most recent.
+                            </MudText>
+                        }
+                    }
+                </MudPaper>
+            </MudItem>
+        </MudGrid>
+    }
+}
+
+@code {
+    private const int MissedDaysShown = 21;
+
+    private static readonly (string Label, int Days)[] Presets =
+    {
+        ("7 days", 7),
+        ("30 days", 30),
+        ("90 days", 90),
+        ("1 year", 365)
+    };
+
+    private StreakSummary _streaks = StreakSummary.Empty;
+    private AnalyticsSummary _summary = new();
+    private DateRange? _dateRange;
+    private string _activePreset = "30 days";
+
+    private bool _isLoading = true;
+    private string? _loadFailure;
+
+    // Chart inputs, rebuilt whenever the summary changes rather than recomputed
+    // during render.
+    private List<ChartSeries<double>> _moodSeries = new();
+    private string[] _moodLabels = Array.Empty<string>();
+    private List<ChartSeries<double>> _tagSeries = new();
+    private string[] _tagLabels = Array.Empty<string>();
+    private List<ChartSeries<double>> _trendSeries = new();
+    private string[] _trendLabels = Array.Empty<string>();
+
+    private string GroupingLabel => _summary.Grouping switch
+    {
+        TrendGrouping.Daily => "by day",
+        TrendGrouping.Weekly => "by week",
+        _ => "by month"
+    };
+
+    protected override async Task OnInitializedAsync()
+    {
+        _dateRange = new DateRange(DateTime.Today.AddDays(-29), DateTime.Today);
+        await LoadAsync();
+    }
+
+    private async Task LoadAsync()
+    {
+        _isLoading = true;
+
+        try
+        {
+            _streaks = await Analytics.GetStreaksAsync();
+
+            var from = _dateRange?.Start ?? DateTime.Today.AddDays(-29);
+            var to = _dateRange?.End ?? DateTime.Today;
+
+            _summary = await Analytics.GetSummaryAsync(from, to);
+            BuildChartData();
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Failed to load the dashboard");
+            _loadFailure = $"Could not load the dashboard: {ex.Message}";
+        }
+        finally
+        {
+            _isLoading = false;
+        }
+    }
+
+    /// <summary>
+    /// Projects the summary into the shapes the chart component expects.
+    /// </summary>
+    /// <remarks>
+    /// Categories with no entries are dropped from the donut - a zero-width
+    /// slice renders as a stray label - while the table beneath still lists all
+    /// three, so nothing is hidden.
+    /// </remarks>
+    private void BuildChartData()
+    {
+        var presentMoods = _summary.MoodDistribution.Where(share => share.Count > 0).ToArray();
+        _moodLabels = presentMoods.Select(share => share.Category.ToString()).ToArray();
+        _moodSeries = new List<ChartSeries<double>>
+        {
+            new() { Name = "Entries", Data = presentMoods.Select(share => (double)share.Count).ToArray() }
+        };
+
+        _tagLabels = _summary.TopTags.Select(tag => tag.Name).ToArray();
+        _tagSeries = new List<ChartSeries<double>>
+        {
+            new() { Name = "Times used", Data = _summary.TopTags.Select(tag => (double)tag.Count).ToArray() }
+        };
+
+        _trendLabels = _summary.WordCountTrend.Select(point => point.Label).ToArray();
+        _trendSeries = new List<ChartSeries<double>>
+        {
+            new() { Name = "Average words", Data = _summary.WordCountTrend.Select(point => point.AverageWords).ToArray() }
+        };
+    }
+
+    private async Task OnRangeChanged(DateRange? range)
+    {
+        _dateRange = range;
+        _activePreset = string.Empty;
+        await LoadAsync();
+    }
+
+    private async Task ApplyPresetAsync(string label, int days)
+    {
+        _activePreset = label;
+        _dateRange = new DateRange(DateTime.Today.AddDays(-(days - 1)), DateTime.Today);
+        await LoadAsync();
+    }
+
+    private static Color CategoryColour(MoodCategory category) => category switch
+    {
+        MoodCategory.Positive => Color.Success,
+        MoodCategory.Negative => Color.Error,
+        _ => Color.Info
+    };
+
+    private void OpenDate(DateTime date) => Navigation.NavigateTo($"/write/{date:yyyy-MM-dd}");
+}
