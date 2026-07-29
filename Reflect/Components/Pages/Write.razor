@@ -28,7 +28,7 @@ else
             <MudIconButton Icon="@Icons.Material.Filled.ChevronLeft"
                            Variant="Variant.Outlined" Size="Size.Small"
                            OnClick="@(() => GoToDate(_date.AddDays(-1)))"
-                           Title="Previous day" aria-label="Previous day"
+                           title="Previous day" aria-label="Previous day"
                            Style="border-radius: 0;" />
             <MudButton Variant="Variant.Outlined" Size="Size.Small"
                        OnClick="@(() => GoToDate(DateTime.Today))"
@@ -37,7 +37,7 @@ else
                            Variant="Variant.Outlined" Size="Size.Small"
                            Disabled="@(_date.Date >= DateTime.Today)"
                            OnClick="@(() => GoToDate(_date.AddDays(1)))"
-                           Title="Next day" aria-label="Next day"
+                           title="Next day" aria-label="Next day"
                            Style="border-radius: 0;" />
 
             @if (_isExisting)
