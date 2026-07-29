@@ -2,20 +2,14 @@ using Reflect.Models.Analytics;
 
 namespace Reflect.Services.Interfaces;
 
-/// <summary>
-/// Aggregates entries into the figures shown on the dashboard.
-/// </summary>
+// Works out the numbers shown on the dashboard.
 public interface IAnalyticsService
 {
-    /// <summary>
-    /// Journalling consistency across the whole journal. Not range-filtered -
-    /// see <see cref="StreakSummary"/> for why.
-    /// </summary>
+    // Whole journal rather than the selected range - a streak doesn't mean much
+    // if it gets cut off at the edge of the range.
     Task<StreakSummary> GetStreaksAsync();
 
-    /// <summary>
-    /// Every dashboard figure for one inclusive date range, gathered in a single
-    /// call so the page issues a fixed number of queries.
-    /// </summary>
+    // Everything else in one call, so the dashboard isn't running a separate
+    // query for each panel.
     Task<AnalyticsSummary> GetSummaryAsync(DateTime from, DateTime to);
 }

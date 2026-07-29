@@ -1,9 +1,6 @@
 namespace Reflect.Models;
 
-/// <summary>
-/// One page of results together with the totals a pager needs to render.
-/// </summary>
-/// <typeparam name="T">Element type of the page.</typeparam>
+// One page of results plus the totals the pager needs.
 public sealed class PagedResult<T>
 {
     public PagedResult(IReadOnlyList<T> items, int totalCount, int page, int pageSize)
@@ -14,25 +11,22 @@ public sealed class PagedResult<T>
         PageSize = pageSize;
     }
 
-    /// <summary>Items on the current page.</summary>
     public IReadOnlyList<T> Items { get; }
 
-    /// <summary>Total items matching the query across all pages.</summary>
+    // Across all pages, not just this one.
     public int TotalCount { get; }
 
-    /// <summary>Current page number, 1-based.</summary>
     public int Page { get; }
 
     public int PageSize { get; }
 
-    /// <summary>Total number of pages, minimum 1 so pagers always have a page to show.</summary>
+    // Never 0, otherwise the pager has nothing to draw.
     public int TotalPages => TotalCount == 0 ? 1 : (int)Math.Ceiling(TotalCount / (double)PageSize);
 
     public bool HasPrevious => Page > 1;
 
     public bool HasNext => Page < TotalPages;
 
-    /// <summary>An empty page, used when a query yields nothing.</summary>
     public static PagedResult<T> Empty(int pageSize) =>
         new(Array.Empty<T>(), totalCount: 0, page: 1, pageSize: pageSize);
 }

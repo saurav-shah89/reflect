@@ -2,19 +2,11 @@ using SQLite;
 
 namespace Reflect.Data;
 
-/// <summary>
-/// Provides the initialised SQLite connection used by the service layer.
-/// </summary>
-/// <remarks>
-/// Services depend on this abstraction rather than on a concrete connection so
-/// the storage mechanism can be swapped (for example for an in-memory database
-/// during testing) without touching business logic.
-/// </remarks>
+// The services take this rather than a SQLiteAsyncConnection directly, so the
+// database can be swapped without changing them.
 public interface IJournalDatabase
 {
-    /// <summary>
-    /// Returns the shared connection, creating the schema and seeding reference
-    /// data on first call. Safe to call concurrently; initialisation runs once.
-    /// </summary>
+    // Creates the tables and seeds the reference data the first time it's
+    // called. Safe to call from more than one place at once.
     Task<SQLiteAsyncConnection> GetConnectionAsync();
 }

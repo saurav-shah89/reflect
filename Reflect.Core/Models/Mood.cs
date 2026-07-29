@@ -2,10 +2,7 @@ using SQLite;
 
 namespace Reflect.Models;
 
-/// <summary>
-/// A single selectable mood, e.g. "Happy" (Positive) or "Anxious" (Negative).
-/// The full set is fixed by the specification and seeded on first run.
-/// </summary>
+// The moods you can pick from. Fixed list from the spec, seeded on first run.
 [Table("moods")]
 public class Mood
 {
@@ -18,6 +15,5 @@ public class Mood
     [Indexed]
     public MoodCategory Category { get; set; }
 
-    /// <summary>Display order within the category, so pickers list moods predictably.</summary>
     public int SortOrder { get; set; }
 }

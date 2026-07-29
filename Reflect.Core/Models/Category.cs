@@ -2,10 +2,7 @@ using SQLite;
 
 namespace Reflect.Models;
 
-/// <summary>
-/// A broad grouping an entry can be filed under. Unlike tags, an entry has at
-/// most one category.
-/// </summary>
+// An entry can have several tags but only one category.
 [Table("categories")]
 public class Category
 {
