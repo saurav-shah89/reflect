@@ -20,191 +20,234 @@ else if (_fatalError is not null)
 }
 else
 {
-    <div class="d-flex align-center justify-space-between mb-2">
-        <div>
-            <MudText Typo="Typo.h4">@(_isExisting ? "Edit entry" : "New entry")</MudText>
-            <MudText Typo="Typo.subtitle1">@_date.ToString("dddd, d MMMM yyyy")</MudText>
-        </div>
-        <div class="d-flex align-center gap-2">
-            <MudIconButton Icon="@Icons.Material.Filled.ChevronLeft"
-                           OnClick="@(() => GoToDate(_date.AddDays(-1)))"
-                           Title="Previous day" aria-label="Previous day" />
-            <MudButton Variant="Variant.Text" OnClick="@(() => GoToDate(DateTime.Today))">Today</MudButton>
-            <MudIconButton Icon="@Icons.Material.Filled.ChevronRight"
-                           OnClick="@(() => GoToDate(_date.AddDays(1)))"
-                           Disabled="@(_date.Date >= DateTime.Today)"
-                           Title="Next day" aria-label="Next day" />
-        </div>
-    </div>
+    <ScreenHeader Title="@(_isExisting ? _date.ToString("dddd") : "Today")"
+                  Subtitle="@_date.ToString("d MMMM yyyy")">
+        <Actions>
+            <span class="lp-label">@_liveWordCount words</span>
 
-    @if (_isExisting)
-    {
-        <MudText Typo="Typo.caption" Class="mb-4 d-block">
-            Created @_createdAt.ToString("d MMM yyyy HH:mm")
-            &middot; last updated @_updatedAt.ToString("d MMM yyyy HH:mm")
-            &middot; @_liveWordCount words
-        </MudText>
-    }
-    else
-    {
-        <MudText Typo="Typo.caption" Class="mb-4 d-block">@_liveWordCount words</MudText>
-    }
+            <MudIconButton Icon="@Icons.Material.Filled.ChevronLeft"
+                           Variant="Variant.Outlined" Size="Size.Small"
+                           OnClick="@(() => GoToDate(_date.AddDays(-1)))"
+                           Title="Previous day" aria-label="Previous day"
+                           Style="border-radius: 0;" />
+            <MudButton Variant="Variant.Outlined" Size="Size.Small"
+                       OnClick="@(() => GoToDate(DateTime.Today))"
+                       Style="border-radius: 0;">Today</MudButton>
+            <MudIconButton Icon="@Icons.Material.Filled.ChevronRight"
+                           Variant="Variant.Outlined" Size="Size.Small"
+                           Disabled="@(_date.Date >= DateTime.Today)"
+                           OnClick="@(() => GoToDate(_date.AddDays(1)))"
+                           Title="Next day" aria-label="Next day"
+                           Style="border-radius: 0;" />
+
+            @if (_isExisting)
+            {
+                <MudButton Variant="Variant.Outlined" Color="Color.Error" Size="Size.Small"
+                           StartIcon="@Icons.Material.Filled.Delete"
+                           Disabled="_isSaving" OnClick="DeleteAsync"
+                           Style="border-radius: 0;">Delete</MudButton>
+            }
+
+            <MudButton Variant="Variant.Filled" Color="Color.Primary" Size="Size.Small"
+                       StartIcon="@Icons.Material.Filled.Save"
+                       Disabled="_isSaving" OnClick="SaveAsync"
+                       Style="border-radius: 0;">
+                @(_isExisting ? "Save" : "Create")
+            </MudButton>
+        </Actions>
+    </ScreenHeader>
 
     @if (_validationError is not null)
     {
-        <MudAlert Severity="Severity.Warning" Class="mb-4">@_validationError</MudAlert>
+        <MudAlert Severity="Severity.Warning" Class="mb-4" Style="border-radius: 0;">@_validationError</MudAlert>
     }
 
-    <MudTextField @bind-Value="_title"
-                  Label="Title"
-                  Variant="Variant.Outlined"
-                  MaxLength="200"
-                  Immediate="true"
-                  Class="mb-4" />
+    <div class="lp-editor-grid">
 
-    <MudGrid Class="mb-2">
-        <MudItem xs="12" md="6">
-            <MudText Typo="Typo.subtitle2" Class="mb-1">Write</MudText>
-            <MudTextField @bind-Value="_content"
-                          Variant="Variant.Outlined"
-                          Lines="18"
-                          Immediate="true"
-                          TextChanged="OnContentChanged"
-                          Placeholder="Markdown is supported: **bold**, *italics*, # headings, - lists, [links](url)" />
-        </MudItem>
+        @* ---- manuscript column ---- *@
+        <div style="position: relative;">
+            @* The day set as an oversized folio numeral, as on a printed page.
+               Decorative only, so it is hidden from assistive technology. *@
+            <div class="lp-folio" aria-hidden="true">@_date.Day</div>
 
-        <MudItem xs="12" md="6">
-            <MudText Typo="Typo.subtitle2" Class="mb-1">Preview</MudText>
-            <MudPaper Outlined="true" Class="pa-4 markdown-preview">
-                @if (string.IsNullOrWhiteSpace(_content))
+            <div class="lp-manuscript">
+                <div class="lp-label lp-label-accent mb-4" style="display: flex; gap: 10px;">
+                    <span>Folio @_date.Day</span>
+                    <span style="color: var(--lp-faint);">@_date.ToString("MMMM").ToUpperInvariant()</span>
+                </div>
+
+                <input class="lp-title-input"
+                       value="@_title"
+                       @oninput="OnTitleInput"
+                       maxlength="200"
+                       placeholder="Give today a title…"
+                       aria-label="Entry title" />
+
+                <div class="lp-label mt-3" style="display: flex; gap: 16px; letter-spacing: 0.1em;">
+                    @if (_isExisting)
+                    {
+                        <span>Created @_createdAt.ToString("d MMM HH:mm")</span>
+                        <span>Updated @_updatedAt.ToString("d MMM HH:mm")</span>
+                    }
+                    else
+                    {
+                        <span>New entry</span>
+                    }
+                </div>
+
+                <div class="lp-editor-panes mt-5">
+                    <div>
+                        <div class="lp-label mb-2">Write</div>
+                        <MudTextField @bind-Value="_content"
+                                      Variant="Variant.Outlined"
+                                      Lines="16"
+                                      Immediate="true"
+                                      TextChanged="OnContentChanged"
+                                      Placeholder="Markdown is supported: **bold**, *italics*, # headings, - lists, [links](url)"
+                                      Style="border-radius: 0;" />
+                    </div>
+
+                    <div>
+                        <div class="lp-label mb-2">Proof</div>
+                        <div class="lp-card pa-4 markdown-preview">
+                            @if (string.IsNullOrWhiteSpace(_content))
+                            {
+                                <span class="lp-label">Nothing to preview yet.</span>
+                            }
+                            else
+                            {
+                                @((MarkupString)Markdown.ToHtml(_content))
+                            }
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        @* ---- meta column ---- *@
+        <div class="lp-stagger">
+
+            <div class="lp-block mb-6">
+                <div class="d-flex align-baseline justify-space-between mb-4">
+                    <span class="lp-label">Mood</span>
+                    <span class="lp-label" style="letter-spacing: 0.08em;">
+                        @(_primaryMoodId > 0 ? "1 primary" : "required")
+                    </span>
+                </div>
+
+                @foreach (var category in MoodCategories)
                 {
-                    <MudText Typo="Typo.body2">Nothing to preview yet.</MudText>
+                    <div class="mb-4">
+                        <div class="lp-label d-flex align-center mb-2"
+                             style="@($"gap:7px;letter-spacing:.06em;color:{LetterpressTheme.ColourFor(category)};")">
+                            <span class="lp-swatch lp-swatch-round"
+                                  style="@($"background:{LetterpressTheme.ColourFor(category)};")"></span>
+                            @category.ToString().ToUpperInvariant()
+                        </div>
+
+                        <div class="d-flex flex-wrap" style="gap: 7px;">
+                            @foreach (var mood in _moods.Where(m => m.Category == category))
+                            {
+                                var isPrimary = _primaryMoodId == mood.Id;
+                                var isSecondary = _secondaryMoodIds.Contains(mood.Id);
+
+                                <div class="lp-mood" style="@MoodChipStyle(mood, isPrimary, isSecondary)">
+                                    <button type="button" class="lp-mood-main"
+                                            @onclick="@(() => OnPrimaryMoodChanged(mood.Id))"
+                                            title="@($"Set {mood.Name} as the primary mood")">
+                                        @mood.Name
+                                    </button>
+
+                                    @if (!isPrimary)
+                                    {
+                                        @* The design marks a secondary mood with 2°. Making that
+                                           marker the control keeps the look and gives keyboard
+                                           users a way in, which right-click alone would not. *@
+                                        <button type="button" class="lp-mood-second"
+                                                @onclick="@(() => ToggleSecondary(mood.Id))"
+                                                title="@($"{(isSecondary ? "Remove" : "Add")} {mood.Name} as a secondary mood")"
+                                                style="@($"color:{(isSecondary ? MoodColour(mood) : "var(--lp-faint)")};")">
+                                            2&deg;
+                                        </button>
+                                    }
+                                </div>
+                            }
+                        </div>
+                    </div>
+                }
+
+                <div class="lp-label" style="letter-spacing: 0.04em; line-height: 1.6;">
+                    Pick one primary mood. Use 2&deg; to add up to two secondary moods.
+                </div>
+            </div>
+
+            <div class="lp-block-light mb-6">
+                <div class="lp-label mb-3">Category</div>
+                <div class="d-flex flex-wrap" style="gap: 7px;">
+                    @foreach (var category in _categories)
+                    {
+                        var selected = _categoryId == category.Id;
+
+                        <button type="button" class="lp-pill"
+                                style="@PillStyle(selected)"
+                                @onclick="@(() => _categoryId = selected ? 0 : category.Id)">
+                            @category.Name
+                        </button>
+                    }
+                </div>
+            </div>
+
+            <div class="lp-block-light">
+                <div class="lp-label mb-3">Tags</div>
+
+                @if (_selectedTagIds.Count > 0)
+                {
+                    <div class="d-flex flex-wrap mb-3" style="gap: 7px;">
+                        @foreach (var tag in _tags.Where(t => _selectedTagIds.Contains(t.Id)))
+                        {
+                            <span class="lp-tag-chip">
+                                @tag.Name
+                                <button type="button" class="lp-tag-remove"
+                                        @onclick="@(() => RemoveTag(tag.Id))"
+                                        aria-label="@($"Remove {tag.Name}")">&times;</button>
+                            </span>
+                        }
+                    </div>
                 }
                 else
                 {
-                    @((MarkupString)Markdown.ToHtml(_content))
+                    <div class="lp-label mb-3" style="letter-spacing: 0.04em;">No tags yet.</div>
                 }
-            </MudPaper>
-        </MudItem>
-    </MudGrid>
 
-    <MudText Typo="Typo.h6" Class="mt-6 mb-2">How was your day?</MudText>
+                <div class="d-flex mb-4" style="gap: 7px;">
+                    <MudTextField @bind-Value="_newTagName"
+                                  Placeholder="Add custom tag…"
+                                  Variant="Variant.Outlined"
+                                  MaxLength="40"
+                                  Immediate="true"
+                                  Margin="Margin.Dense"
+                                  OnKeyDown="OnNewTagKeyDown"
+                                  Style="border-radius: 0;" />
+                    <MudIconButton Icon="@Icons.Material.Filled.Add"
+                                   Variant="Variant.Outlined"
+                                   Disabled="@string.IsNullOrWhiteSpace(_newTagName)"
+                                   OnClick="AddTagAsync"
+                                   aria-label="Add tag"
+                                   Style="border-radius: 0;" />
+                </div>
 
-    <MudGrid>
-        <MudItem xs="12" md="4">
-            <MudSelect T="int"
-                       Value="_primaryMoodId"
-                       ValueChanged="OnPrimaryMoodChanged"
-                       Label="Primary mood (required)"
-                       Variant="Variant.Outlined"
-                       Required="true">
-                @foreach (var mood in _moods)
-                {
-                    <MudSelectItem T="int" Value="@mood.Id">
-                        @mood.Name &middot; @mood.Category
-                    </MudSelectItem>
-                }
-            </MudSelect>
-        </MudItem>
-
-        <MudItem xs="12" md="4">
-            <MudSelect T="int"
-                       MultiSelection="true"
-                       SelectedValues="_secondaryMoodIds"
-                       SelectedValuesChanged="OnSecondaryMoodsChanged"
-                       Label="Secondary moods (up to 2)"
-                       Variant="Variant.Outlined"
-                       MultiSelectionTextFunc="@(values => string.Join(", ", values))">
-                @foreach (var mood in _moods.Where(m => m.Id != _primaryMoodId))
-                {
-                    <MudSelectItem T="int" Value="@mood.Id">
-                        @mood.Name &middot; @mood.Category
-                    </MudSelectItem>
-                }
-            </MudSelect>
-        </MudItem>
-
-        <MudItem xs="12" md="4">
-            <MudSelect T="int"
-                       Value="_categoryId"
-                       ValueChanged="@(value => _categoryId = value)"
-                       Label="Category"
-                       Variant="Variant.Outlined"
-                       Clearable="true">
-                @foreach (var category in _categories)
-                {
-                    <MudSelectItem T="int" Value="@category.Id">@category.Name</MudSelectItem>
-                }
-            </MudSelect>
-        </MudItem>
-    </MudGrid>
-
-    <MudText Typo="Typo.h6" Class="mt-6 mb-2">Tags</MudText>
-
-    <MudSelect T="int"
-               MultiSelection="true"
-               SelectedValues="_selectedTagIds"
-               SelectedValuesChanged="@(values => _selectedTagIds = values.ToHashSet())"
-               Label="Tags"
-               Variant="Variant.Outlined"
-               MultiSelectionTextFunc="@(values => $"{values.Count} tag(s) selected")"
-               Class="mb-2">
-        @foreach (var tag in _tags)
-        {
-            <MudSelectItem T="int" Value="@tag.Id">@tag.Name</MudSelectItem>
-        }
-    </MudSelect>
-
-    <div class="d-flex align-center gap-2 mb-2">
-        <MudTextField @bind-Value="_newTagName"
-                      Label="Add a new tag"
-                      Variant="Variant.Outlined"
-                      MaxLength="40"
-                      Immediate="true"
-                      OnKeyDown="OnNewTagKeyDown"
-                      Style="max-width: 320px;" />
-        <MudButton Variant="Variant.Filled"
-                   StartIcon="@Icons.Material.Filled.Add"
-                   Disabled="@string.IsNullOrWhiteSpace(_newTagName)"
-                   OnClick="AddTagAsync">Add</MudButton>
-    </div>
-
-    @if (_selectedTagIds.Count > 0)
-    {
-        <div class="d-flex flex-wrap gap-1 mb-4">
-            @foreach (var tag in _tags.Where(t => _selectedTagIds.Contains(t.Id)))
-            {
-                <MudChip T="string"
-                         Text="@tag.Name"
-                         Color="Color.Primary"
-                         Size="Size.Small"
-                         OnClose="@(() => RemoveTag(tag.Id))" />
-            }
+                <div class="lp-label mb-2" style="letter-spacing: 0.12em;">Suggested</div>
+                <div class="d-flex flex-wrap" style="gap: 7px;">
+                    @foreach (var tag in _tags.Where(t => !_selectedTagIds.Contains(t.Id)).Take(SuggestedTagCount))
+                    {
+                        <button type="button" class="lp-pill" style="@PillStyle(false)"
+                                @onclick="@(() => _selectedTagIds.Add(tag.Id))">
+                            + @tag.Name
+                        </button>
+                    }
+                </div>
+            </div>
         </div>
-    }
-
-    <MudDivider Class="my-6" />
-
-    <div class="d-flex gap-2">
-        <MudButton Variant="Variant.Filled"
-                   Color="Color.Primary"
-                   StartIcon="@Icons.Material.Filled.Save"
-                   Disabled="_isSaving"
-                   OnClick="SaveAsync">
-            @(_isExisting ? "Save changes" : "Create entry")
-        </MudButton>
-
-        @if (_isExisting)
-        {
-            <MudButton Variant="Variant.Outlined"
-                       Color="Color.Error"
-                       StartIcon="@Icons.Material.Filled.Delete"
-                       Disabled="_isSaving"
-                       OnClick="DeleteAsync">Delete</MudButton>
-        }
-
-        <MudSpacer />
-        <MudButton Variant="Variant.Text" OnClick="@(() => Navigation.NavigateTo("/"))">Close</MudButton>
     </div>
 }
 
@@ -509,4 +552,65 @@ else
             ? 0
             : content.Split((char[]?)null, StringSplitOptions.RemoveEmptyEntries)
                 .Count(token => token.Any(char.IsLetterOrDigit));
+
+    private const int SuggestedTagCount = 12;
+
+    private static readonly MoodCategory[] MoodCategories =
+        { MoodCategory.Positive, MoodCategory.Neutral, MoodCategory.Negative };
+
+    private void OnTitleInput(ChangeEventArgs args) => _title = args.Value?.ToString() ?? string.Empty;
+
+    private string MoodColour(Mood mood) => LetterpressTheme.ColourFor(mood.Name, mood.Category);
+
+    /// <summary>
+    /// A primary mood is filled with its own colour, a secondary outlined in it,
+    /// and an unchosen mood carries only a hairline - so rank is legible without
+    /// reading any label.
+    /// </summary>
+    private string MoodChipStyle(Mood mood, bool isPrimary, bool isSecondary)
+    {
+        var colour = MoodColour(mood);
+
+        if (isPrimary)
+        {
+            return $"border:1px solid {colour};background:{colour};color:#121210;font-weight:600;";
+        }
+
+        return isSecondary
+            ? $"border:1px solid {colour};background:{colour}22;"
+            : "border:1px solid var(--lp-rule);background:transparent;";
+    }
+
+    private string PillStyle(bool selected) => selected
+        ? "border:1px solid var(--lp-accent);background:var(--lp-accent);color:#FFFFFF;font-weight:600;"
+        : "border:1px solid var(--lp-rule);background:transparent;color:var(--lp-muted);";
+
+    /// <summary>
+    /// Adds or removes a secondary mood, capped at two. An extra pick is refused
+    /// with an explanation rather than silently dropped.
+    /// </summary>
+    private void ToggleSecondary(int moodId)
+    {
+        if (moodId == _primaryMoodId)
+        {
+            return;
+        }
+
+        var current = _secondaryMoodIds.ToList();
+
+        if (current.Remove(moodId))
+        {
+            _secondaryMoodIds = current;
+            return;
+        }
+
+        if (current.Count >= MaxSecondaryMoods)
+        {
+            Snackbar.Add($"You can pick at most {MaxSecondaryMoods} secondary moods.", Severity.Info);
+            return;
+        }
+
+        current.Add(moodId);
+        _secondaryMoodIds = current;
+    }
 }

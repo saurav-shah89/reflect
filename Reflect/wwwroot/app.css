@@ -230,6 +230,127 @@ body,
 
 .lp-nav .mud-nav-link.active .lp-nav-num { color: var(--lp-accent); }
 
+/* --------------------------------------------------------------- editor --- */
+
+/*
+ * Manuscript beside its marginalia. The meta column drops beneath the writing
+ * area below the large breakpoint rather than squeezing both, because a cramped
+ * writing column defeats the point of the screen.
+ */
+.lp-editor-grid {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: 38px;
+    align-items: start;
+}
+
+@media (min-width: 1264px) {
+    .lp-editor-grid { grid-template-columns: minmax(0, 1fr) 280px; }
+}
+
+/* A single heavy rule down the left, as a printed page is bound. */
+.lp-manuscript {
+    position: relative;
+    z-index: 1;
+    border-left: 2px solid var(--lp-ink);
+    padding-left: 26px;
+}
+
+.lp-editor-panes {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: 22px;
+}
+
+@media (min-width: 900px) {
+    .lp-editor-panes { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+
+/* The title is set like a headline, not typed into a form field. */
+.lp-title-input {
+    width: 100%;
+    border: none;
+    outline: none;
+    background: transparent;
+    color: var(--lp-ink);
+    font-family: var(--lp-display);
+    font-size: 34px;
+    font-weight: 400;
+    letter-spacing: -0.025em;
+    padding: 0;
+}
+
+.lp-title-input::placeholder {
+    color: var(--lp-faint);
+    opacity: 0.7;
+}
+
+/* ----------------------------------------------------------- mood chips --- */
+
+.lp-mood {
+    display: inline-flex;
+    align-items: center;
+    font-family: var(--lp-chrome);
+    font-size: 12.5px;
+    transition: border-color 140ms ease, background 140ms ease;
+}
+
+.lp-mood-main,
+.lp-mood-second,
+.lp-pill {
+    border: none;
+    background: transparent;
+    color: inherit;
+    font: inherit;
+    cursor: pointer;
+    padding: 6px 10px;
+}
+
+/*
+ * The 2° marker doubles as the secondary-mood control. The design used
+ * right-click, which has no keyboard equivalent; a real button keeps the mark
+ * while making the action reachable.
+ */
+.lp-mood-second {
+    padding: 6px 8px 6px 2px;
+    font-size: 10px;
+    font-weight: 700;
+}
+
+.lp-mood-second:hover { text-decoration: underline; }
+
+.lp-pill {
+    font-family: var(--lp-chrome);
+    font-size: 12.5px;
+    padding: 6px 13px;
+    transition: border-color 140ms ease, background 140ms ease, color 140ms ease;
+}
+
+/* ------------------------------------------------------------ tag chips --- */
+
+.lp-tag-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    background: var(--lp-accent-soft);
+    color: var(--lp-accent);
+    border: 1px solid color-mix(in srgb, var(--lp-accent) 30%, transparent);
+    padding: 5px 8px 5px 11px;
+    font-family: var(--lp-chrome);
+    font-size: 12px;
+    font-weight: 600;
+}
+
+.lp-tag-remove {
+    border: none;
+    background: transparent;
+    color: inherit;
+    cursor: pointer;
+    font-size: 15px;
+    line-height: 1;
+    padding: 0 2px;
+}
+
 /* ---------------------------------------------------------------- marks --- */
 
 /* Mood swatch. Square, because circles read as a different design language. */

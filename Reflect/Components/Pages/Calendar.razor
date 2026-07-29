@@ -1,5 +1,6 @@
 @page "/calendar"
 @inject IEntryService EntryService
+@inject IAnalyticsService Analytics
 @inject IReferenceDataService ReferenceData
 @inject IMarkdownRenderer Markdown
 @inject NavigationManager Navigation
@@ -8,7 +9,13 @@
 <PageTitle>Calendar &middot; Reflect</PageTitle>
 
 <ScreenHeader Title="Calendar"
-              Subtitle="A month at a glance — pick any day to open or start its entry" />
+              Subtitle="A month at a glance — pick any day to open or start its entry">
+    <Actions>
+        <MudButton Variant="Variant.Outlined" Size="Size.Small"
+                   OnClick="@(() => GoToMonthAsync(DateTime.Today))"
+                   Style="border-radius: 0;">Today</MudButton>
+    </Actions>
+</ScreenHeader>
 
 @if (_loadFailure is not null)
 {
@@ -17,36 +24,106 @@
 else
 {
     <MudGrid>
-        <MudItem xs="12" md="6">
-            <MudPaper Outlined="true" Class="pa-2">
-                @* The toolbar shows only a year when nothing is selected, which reads
-                   as an empty banner. The month heading beside the grid covers it. *@
-                <MudDatePicker PickerVariant="PickerVariant.Static"
-                               ShowToolbar="false"
-                               Date="_selectedDate"
-                               DateChanged="OnDateSelected"
-                               PickerMonth="_pickerMonth"
-                               PickerMonthChanged="OnMonthChanged"
-                               MaxDate="DateTime.Today"
-                               AdditionalDateClassesFunc="ClassesForDate"
-                               FirstDayOfWeek="DayOfWeek.Monday"
-                               Elevation="0" />
-            </MudPaper>
+        <MudItem xs="12" md="7">
+            @* A hand-built grid rather than a date picker: each day carries the
+               colour of that day's primary mood, which a picker cannot express. *@
+            <div class="lp-card pa-5">
+                <div class="d-flex align-center justify-space-between mb-5">
+                    <div class="lp-display" style="font-size: 23px; font-weight: 500;">
+                        @_month.ToString("MMMM yyyy")
+                    </div>
+                    <div class="d-flex align-center" style="gap: 8px;">
+                        <span class="lp-label" style="margin-right: 6px;">
+                            @_monthEntries.Count @(_monthEntries.Count == 1 ? "entry" : "entries")
+                        </span>
+                        <MudIconButton Icon="@Icons.Material.Filled.ChevronLeft"
+                                       Variant="Variant.Outlined" Size="Size.Small"
+                                       OnClick="@(() => GoToMonthAsync(_month.AddMonths(-1)))"
+                                       aria-label="Previous month"
+                                       Style="border-radius: 0;" />
+                        <MudIconButton Icon="@Icons.Material.Filled.ChevronRight"
+                                       Variant="Variant.Outlined" Size="Size.Small"
+                                       Disabled="@(!CanGoForward)"
+                                       OnClick="@(() => GoToMonthAsync(_month.AddMonths(1)))"
+                                       aria-label="Next month"
+                                       Style="border-radius: 0;" />
+                    </div>
+                </div>
 
-            <MudText Typo="Typo.caption" Class="mt-2 d-block">
+                <div style="display: grid; grid-template-columns: repeat(7, 1fr); gap: 8px; margin-bottom: 8px;">
+                    @foreach (var day in DayNames)
+                    {
+                        <div class="lp-label" style="text-align: center; letter-spacing: 0.08em;">@day</div>
+                    }
+                </div>
+
+                <div style="display: grid; grid-template-columns: repeat(7, 1fr); gap: 8px;">
+                    @foreach (var cell in _cells)
+                    {
+                        @if (cell is null)
+                        {
+                            <div></div>
+                        }
+                        else
+                        {
+                            var date = cell.Value;
+                            var entry = EntryOn(date);
+                            var isToday = date == DateTime.Today;
+                            var isFuture = date > DateTime.Today;
+                            var inStreak = _streakDays.Contains(date);
+                            var colour = entry is null ? null : MoodColour(entry.PrimaryMoodId);
+
+                            <button type="button"
+                                    disabled="@isFuture"
+                                    @onclick="@(() => OpenDate(date))"
+                                    title="@DayTitle(date, entry)"
+                                    style="@DayCellStyle(isToday, inStreak, isFuture)">
+                                <span style="@($"font-size:14px;font-weight:{(isToday ? 700 : 600)};{(isToday ? "color:var(--lp-accent);" : string.Empty)}")">
+                                    @date.Day
+                                </span>
+
+                                @if (colour is not null)
+                                {
+                                    @* Square pip top-right and a rule beneath, both in the
+                                       day's mood colour, so the month reads as a mood chart. *@
+                                    <span class="lp-swatch"
+                                          style="@($"position:absolute;top:8px;right:8px;background:{colour};")"></span>
+                                    <span class="lp-day-mark" style="@($"background:{colour};")"></span>
+                                }
+                            </button>
+                        }
+                    }
+                </div>
+            </div>
+
+            <div class="lp-card pa-3 mt-4 d-flex flex-wrap align-center" style="gap: 16px;">
+                <span class="lp-label" style="color: var(--lp-ink);">Legend</span>
+                @foreach (var group in MoodCategories)
+                {
+                    <span class="lp-label d-inline-flex align-center" style="gap: 6px;">
+                        <span class="lp-swatch" style="@($"background:{LetterpressTheme.ColourFor(group)};")"></span>
+                        @group
+                    </span>
+                }
+                <span class="lp-label d-inline-flex align-center" style="gap: 6px;">
+                    <span style="width: 12px; height: 12px; border: 1.5px solid var(--lp-accent);"></span>
+                    Today / streak
+                </span>
+            </div>
+
+            <div class="lp-label mt-3">
                 Future days are unavailable — an entry records a day that has happened.
-            </MudText>
+            </div>
         </MudItem>
 
-        <MudItem xs="12" md="6">
-            <div class="d-flex align-center justify-space-between mb-2">
-                <MudText Typo="Typo.h6">@MonthLabel</MudText>
-                @if (!_isLoading)
-                {
-                    <MudChip T="string" Size="Size.Small" Color="Color.Primary" Variant="Variant.Text"
-                             Text="@($"{_monthEntries.Count} of {DaysToCountThisMonth} days")" />
-                }
+        <MudItem xs="12" md="5">
+            <div class="d-flex flex-wrap mb-6" style="gap: 16px;">
+                @Figure("Current streak", _streaks.CurrentStreak, "days")
+                @Figure("Longest streak", _streaks.LongestStreak, "days")
+                @Figure("Total entries", _streaks.TotalEntries, null)
             </div>
+
+            <div class="lp-label mb-3">@_month.ToString("MMMM") at a glance</div>
 
             @if (_isLoading)
             {
@@ -60,27 +137,27 @@ else
             }
             else
             {
-                <MudList T="JournalEntry" Dense="true">
+                <div class="lp-stagger">
                     @foreach (var entry in _monthEntries.OrderByDescending(e => e.EntryDate))
                     {
-                        <MudListItem T="JournalEntry"
-                                     OnClick="@(() => OpenDate(entry.EntryDate))"
-                                     Icon="@Icons.Material.Filled.Article">
-                            <MudText Typo="Typo.body1">@entry.Title</MudText>
-                            <MudText Typo="Typo.caption">
-                                @entry.EntryDate.ToString("ddd d MMM")
-                                &middot; @MoodName(entry.PrimaryMoodId)
-                                &middot; @entry.WordCount words
-                            </MudText>
+                        <div class="lp-block-light mb-4" style="cursor: pointer;"
+                             @onclick="@(() => OpenDate(entry.EntryDate))">
+                            <div class="d-flex align-center" style="gap: 8px;">
+                                <span class="lp-swatch"
+                                      style="@($"background:{MoodColour(entry.PrimaryMoodId)};")"></span>
+                                <span class="lp-label">@entry.EntryDate.ToString("ddd d MMM")</span>
+                            </div>
+                            <MudText Typo="Typo.h6" Class="mt-1">@entry.Title</MudText>
+                            <div class="lp-label mt-1" style="letter-spacing: 0.1em;">
+                                @MoodName(entry.PrimaryMoodId) &middot; @entry.WordCount words
+                            </div>
                             @if (!string.IsNullOrWhiteSpace(entry.Content))
                             {
-                                <MudText Typo="Typo.caption" Class="entry-snippet">
-                                    @Snippet(entry.Content)
-                                </MudText>
+                                <div class="entry-snippet mt-2">@Snippet(entry.Content)</div>
                             }
-                        </MudListItem>
+                        </div>
                     }
-                </MudList>
+                </div>
             }
         </MudItem>
     </MudGrid>
@@ -89,36 +166,33 @@ else
 @code {
     private const int SnippetLength = 110;
 
-    private DateTime? _selectedDate;
-    private DateTime? _pickerMonth = new DateTime(DateTime.Today.Year, DateTime.Today.Month, 1);
+    /// <summary>Weeks start on Sunday, following the design's own grid.</summary>
+    private static readonly string[] DayNames = { "Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat" };
+
+    private static readonly MoodCategory[] MoodCategories =
+        { MoodCategory.Positive, MoodCategory.Neutral, MoodCategory.Negative };
+
+    private DateTime _month = new(DateTime.Today.Year, DateTime.Today.Month, 1);
 
     private IReadOnlyList<JournalEntry> _monthEntries = Array.Empty<JournalEntry>();
-    private HashSet<DateTime> _datesWithEntries = new();
+    private Dictionary<DateTime, JournalEntry> _byDate = new();
+    private HashSet<DateTime> _streakDays = new();
+    private StreakSummary _streaks = StreakSummary.Empty;
     private IReadOnlyDictionary<int, Mood> _moodLookup = new Dictionary<int, Mood>();
+    private List<DateTime?> _cells = new();
 
     private bool _isLoading = true;
     private string? _loadFailure;
 
-    private DateTime CurrentMonth => _pickerMonth ?? new DateTime(DateTime.Today.Year, DateTime.Today.Month, 1);
-
-    private string MonthLabel => CurrentMonth.ToString("MMMM yyyy");
-
-    /// <summary>
-    /// Days in the month that could hold an entry. For the current month that is
-    /// today's date, since later days have not happened; for past months it is
-    /// the whole month.
-    /// </summary>
-    private int DaysToCountThisMonth =>
-        CurrentMonth.Year == DateTime.Today.Year && CurrentMonth.Month == DateTime.Today.Month
-            ? DateTime.Today.Day
-            : DateTime.DaysInMonth(CurrentMonth.Year, CurrentMonth.Month);
+    /// <summary>The next month is only reachable if any of it has happened.</summary>
+    private bool CanGoForward => _month.AddMonths(1) <= new DateTime(DateTime.Today.Year, DateTime.Today.Month, 1);
 
     protected override async Task OnInitializedAsync()
     {
         try
         {
             _moodLookup = await ReferenceData.GetMoodLookupAsync();
-            await LoadMonthAsync(CurrentMonth);
+            await LoadMonthAsync(_month);
         }
         catch (Exception ex)
         {
@@ -142,7 +216,11 @@ else
             var lastDay = firstDay.AddMonths(1).AddDays(-1);
 
             _monthEntries = await EntryService.GetRangeAsync(firstDay, lastDay);
-            _datesWithEntries = _monthEntries.Select(entry => entry.EntryDate.Date).ToHashSet();
+            _byDate = _monthEntries.ToDictionary(entry => entry.EntryDate.Date);
+
+            _streaks = await Analytics.GetStreaksAsync();
+            _streakDays = BuildStreakDays(_streaks);
+            _cells = BuildCells(firstDay, lastDay);
         }
         finally
         {
@@ -150,38 +228,135 @@ else
         }
     }
 
-    private async Task OnMonthChanged(DateTime? month)
+    /// <summary>
+    /// The days making up the live streak, counted back from the most recent
+    /// entry, so the calendar can outline the run the figures describe.
+    /// </summary>
+    private static HashSet<DateTime> BuildStreakDays(StreakSummary streaks)
     {
-        _pickerMonth = month;
+        var days = new HashSet<DateTime>();
 
-        if (month is not null)
+        if (streaks.LastEntryDate is not DateTime last || streaks.CurrentStreak == 0)
         {
-            await LoadMonthAsync(month.Value);
+            return days;
         }
+
+        for (var i = 0; i < streaks.CurrentStreak; i++)
+        {
+            days.Add(last.AddDays(-i).Date);
+        }
+
+        return days;
     }
 
-    private void OnDateSelected(DateTime? date)
+    /// <summary>Leading blanks so the first of the month lands under its weekday.</summary>
+    private static List<DateTime?> BuildCells(DateTime firstDay, DateTime lastDay)
     {
-        _selectedDate = date;
+        var cells = new List<DateTime?>();
 
-        if (date is not null)
+        for (var i = 0; i < (int)firstDay.DayOfWeek; i++)
         {
-            OpenDate(date.Value);
+            cells.Add(null);
         }
+
+        for (var day = firstDay; day <= lastDay; day = day.AddDays(1))
+        {
+            cells.Add(day);
+        }
+
+        while (cells.Count % 7 != 0)
+        {
+            cells.Add(null);
+        }
+
+        return cells;
     }
 
-    private void OpenDate(DateTime date) =>
+    private async Task GoToMonthAsync(DateTime month)
+    {
+        _month = new DateTime(month.Year, month.Month, 1);
+        await LoadMonthAsync(_month);
+    }
+
+    private JournalEntry? EntryOn(DateTime date) =>
+        _byDate.TryGetValue(date.Date, out var entry) ? entry : null;
+
+    private void OpenDate(DateTime date)
+    {
+        if (date > DateTime.Today)
+        {
+            return;
+        }
+
         Navigation.NavigateTo($"/write/{date:yyyy-MM-dd}");
+    }
 
     /// <summary>
-    /// Marks days that already have an entry so the month is readable at a
-    /// glance. Returned classes are styled in app.css.
+    /// A square cell outlined in the accent for today, faintly for a streak day,
+    /// and a hairline otherwise. Future days are dimmed rather than hidden, so
+    /// the shape of the month stays intact.
     /// </summary>
-    private string ClassesForDate(DateTime date) =>
-        _datesWithEntries.Contains(date.Date) ? "calendar-has-entry" : string.Empty;
+    private static string DayCellStyle(bool isToday, bool inStreak, bool isFuture)
+    {
+        var border = isToday
+            ? "var(--lp-accent)"
+            : inStreak ? "color-mix(in srgb, var(--lp-accent) 45%, transparent)" : "var(--lp-rule)";
+
+        return "aspect-ratio:1/1;display:flex;flex-direction:column;align-items:flex-start;" +
+               "justify-content:space-between;padding:8px;position:relative;font-family:inherit;" +
+               "background:transparent;border-radius:0;" +
+               $"border:1px solid {border};" +
+               $"cursor:{(isFuture ? "default" : "pointer")};opacity:{(isFuture ? "0.35" : "1")};";
+    }
+
+    private string DayTitle(DateTime date, JournalEntry? entry) =>
+        entry is null
+            ? (date > DateTime.Today ? $"{date:d MMMM} — not yet" : $"{date:d MMMM} — nothing written")
+            : $"{date:d MMMM} — {entry.Title} ({MoodName(entry.PrimaryMoodId)})";
+
+    private string MoodColour(int moodId) =>
+        _moodLookup.TryGetValue(moodId, out var mood)
+            ? LetterpressTheme.ColourFor(mood.Name, mood.Category)
+            : LetterpressTheme.NeutralColour;
 
     private string MoodName(int moodId) =>
         _moodLookup.TryGetValue(moodId, out var mood) ? mood.Name : "Unknown mood";
+
+    /// <summary>A label over a display-serif figure, as the design sets its statistics.</summary>
+    private RenderFragment Figure(string label, int value, string? unit) => builder =>
+    {
+        builder.OpenElement(0, "div");
+        builder.AddAttribute(1, "class", "lp-block");
+        builder.AddAttribute(2, "style", "flex: 1 1 140px;");
+
+        builder.OpenElement(3, "div");
+        builder.AddAttribute(4, "class", "lp-label");
+        builder.AddAttribute(5, "style", "margin-bottom: 10px;");
+        builder.AddContent(6, label);
+        builder.CloseElement();
+
+        builder.OpenElement(7, "div");
+        builder.AddAttribute(8, "class", "d-flex align-baseline");
+        builder.AddAttribute(9, "style", "gap: 7px;");
+
+        builder.OpenElement(10, "span");
+        builder.AddAttribute(11, "class", "lp-figure");
+        builder.AddAttribute(12, "style", "font-size: 40px;");
+        builder.AddContent(13, value);
+        builder.CloseElement();
+
+        if (unit is not null)
+        {
+            builder.OpenElement(14, "span");
+            builder.AddAttribute(15, "class", "lp-label");
+            builder.AddAttribute(16, "style", "font-size: 0.55rem;");
+            builder.AddContent(17, unit);
+            builder.CloseElement();
+        }
+
+        builder.CloseElement();
+        builder.CloseElement();
+    };
 
     /// <summary>
     /// Renders Markdown down to plain text for the preview line, so syntax
