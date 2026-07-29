@@ -256,7 +256,6 @@ swapped (for example for an in-memory database in tests) without touching busine
 .
 ├── Reflect.sln                     Solution file
 ├── README.md                       This file
-├── CS6004...pdf                    Coursework brief, kept for reference
 └── Reflect/
     ├── Reflect.csproj              Project file, target frameworks, packages
     ├── MauiProgram.cs              App composition root and DI registration

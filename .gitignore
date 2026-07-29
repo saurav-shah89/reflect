@@ -480,3 +480,7 @@ $RECYCLE.BIN/
 
 # Vim temporary swap files
 *.swp
+
+# Coursework brief. University assessment material, not part of the submission -
+# kept locally but never committed.
+*.pdf
