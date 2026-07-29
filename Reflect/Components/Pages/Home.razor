@@ -76,7 +76,11 @@ else
                          tabindex="0"
                          @onclick="@(() => OpenDate(entry.EntryDate))"
                          @onkeydown="@(e => OnRowKeyDown(e, entry.EntryDate))">
-                        <MudText Typo="Typo.body1">@entry.Title</MudText>
+                        @* An entry title is content, so it takes the display face as it
+                           does in the timeline, rather than the mono used for chrome. *@
+                        <MudText Typo="Typo.body1" Class="lp-display" Style="font-size: 1.12rem;">
+                            @entry.Title
+                        </MudText>
                         <span class="lp-label" style="white-space: nowrap;">
                             @entry.EntryDate.ToString("d MMM") &middot; @entry.WordCount words
                         </span>
