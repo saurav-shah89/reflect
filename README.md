@@ -10,37 +10,6 @@ Built with .NET MAUI Blazor Hybrid for **CS6004NI Application Development**, Cou
 
 ---
 
-## Project Status
-
-> **All twelve specified features are implemented.** This section is kept honest and current
-> so nobody is misled about what runs today.
-
-| Area | Status |
-| --- | --- |
-| Project scaffold (.NET 10, four platforms) | Complete — builds and launches on Windows |
-| Domain model (entries, moods, tags, categories, settings) | Complete |
-| SQLite database, schema creation and reference-data seeding | Complete |
-| `EntryService` — CRUD, search, paging | Complete |
-| Reference data and Markdown services | Complete |
-| Dependency injection and MudBlazor shell | Complete |
-| Entry editor — write, moods, tags, category, delete | Complete |
-| Calendar month view | Complete |
-| Paginated journal with search and filters | Complete |
-| Streaks and dashboard analytics | Complete |
-| Journal lock (passphrase or PIN) | Complete |
-| PDF export by date range | Complete |
-| Theme persistence | Complete |
-
-What this means practically: you can write a Markdown entry for today or any past day, record
-moods, tag and categorise it, browse a month at a glance in the calendar, page through
-everything you have written, search or filter by text, date range, mood, tag and category, see
-streaks and analytics on the dashboard, protect the journal with a passphrase or PIN, choose a
-theme that persists, and export any date range to PDF.
-
-Everything on the roadmap is done.
-
----
-
 ## Table of Contents
 
 - [Key Features](#key-features)
