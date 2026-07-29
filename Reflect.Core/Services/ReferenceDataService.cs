@@ -5,15 +5,12 @@ using Reflect.Services.Interfaces;
 
 namespace Reflect.Services;
 
-/// <summary>
-/// Reads the moods, tags and categories entries are built from.
-/// </summary>
-/// <remarks>
-/// These lists are small, change rarely and are read on nearly every screen, so
-/// they are cached in memory after first read and the cache is dropped whenever
-/// a tag or category is added. Reads are guarded by a semaphore rather than a
-/// lock because the underlying database calls are asynchronous.
-/// </remarks>
+// Reads the moods, tags and categories.
+//
+// These lists are small and almost every screen needs them, so they're cached
+// after the first read and the cache is thrown away when a tag or category is
+// added. It uses a SemaphoreSlim rather than lock because the database calls
+// are async and you can't await inside a lock.
 public sealed class ReferenceDataService : IReferenceDataService
 {
     private readonly IJournalDatabase _database;
@@ -31,7 +28,6 @@ public sealed class ReferenceDataService : IReferenceDataService
         _logger = logger;
     }
 
-    /// <inheritdoc />
     public async Task<IReadOnlyList<Mood>> GetMoodsAsync()
     {
         if (_moods is not null)
@@ -61,7 +57,6 @@ public sealed class ReferenceDataService : IReferenceDataService
         }
     }
 
-    /// <inheritdoc />
     public async Task<IReadOnlyDictionary<int, Mood>> GetMoodLookupAsync()
     {
         // GetMoodsAsync populates both caches together.
@@ -69,7 +64,6 @@ public sealed class ReferenceDataService : IReferenceDataService
         return _moodLookup!;
     }
 
-    /// <inheritdoc />
     public async Task<IReadOnlyList<Tag>> GetTagsAsync()
     {
         if (_tags is not null)
@@ -96,7 +90,6 @@ public sealed class ReferenceDataService : IReferenceDataService
         }
     }
 
-    /// <inheritdoc />
     public async Task<IReadOnlyList<Category>> GetCategoriesAsync()
     {
         if (_categories is not null)
@@ -124,14 +117,13 @@ public sealed class ReferenceDataService : IReferenceDataService
         }
     }
 
-    /// <inheritdoc />
     public async Task<Tag> GetOrCreateTagAsync(string name)
     {
         var trimmed = RequireName(name, nameof(name));
         var connection = await _database.GetConnectionAsync().ConfigureAwait(false);
 
-        // COLLATE NOCASE so "work" matches the pre-built "Work" instead of
-        // creating a second tag that differs only by case.
+        // COLLATE NOCASE so "work" finds the existing "Work" rather than adding
+        // a second tag that only differs by capitals.
         var existing = await connection
             .QueryAsync<Tag>("SELECT * FROM tags WHERE Name = ? COLLATE NOCASE LIMIT 1", trimmed)
             .ConfigureAwait(false);
@@ -149,7 +141,6 @@ public sealed class ReferenceDataService : IReferenceDataService
         return tag;
     }
 
-    /// <inheritdoc />
     public async Task<Category> GetOrCreateCategoryAsync(string name)
     {
         var trimmed = RequireName(name, nameof(name));
@@ -172,7 +163,7 @@ public sealed class ReferenceDataService : IReferenceDataService
         return category;
     }
 
-    /// <summary>Validates and trims a name supplied by the user.</summary>
+    // Trims the name and checks it isn't blank or too long.
     private static string RequireName(string name, string parameterName)
     {
         if (string.IsNullOrWhiteSpace(name))

@@ -2,16 +2,10 @@ using Reflect.Models;
 
 namespace Reflect.Data;
 
-/// <summary>
-/// The fixed reference data defined by the coursework specification. These lists
-/// are inserted once, on first run, and are the single source of truth for the
-/// built-in moods, tags and categories.
-/// </summary>
+// The reference data from the coursework spec. Inserted once on first run.
 internal static class SeedData
 {
-    /// <summary>
-    /// The fifteen moods from the specification: five per category.
-    /// </summary>
+    // Fifteen moods, five in each category.
     public static IReadOnlyList<Mood> Moods { get; } = new List<Mood>
     {
         // Positive
@@ -36,10 +30,7 @@ internal static class SeedData
         new() { Name = "Anxious",    Category = MoodCategory.Negative, SortOrder = 5 },
     };
 
-    /// <summary>
-    /// The pre-built tag list from the specification. Users may add their own on
-    /// top of these; those are stored with <see cref="Tag.IsCustom"/> set.
-    /// </summary>
+    // Starting tags. Anything the user adds is saved with IsCustom set.
     public static IReadOnlyList<string> TagNames { get; } = new[]
     {
         "Work", "Career", "Studies", "Family", "Friends", "Relationships",
@@ -50,11 +41,8 @@ internal static class SeedData
         "Reflection"
     };
 
-    /// <summary>
-    /// Starting categories. The specification requires entries to be organised
-    /// under a category but does not fix the list, so these are sensible
-    /// defaults the user can build on.
-    /// </summary>
+    // The spec says entries need categories but doesn't say which, so these are
+    // just sensible ones to start with.
     public static IReadOnlyList<string> CategoryNames { get; } = new[]
     {
         "Personal", "Work", "Health", "Travel", "Learning", "Relationships"

@@ -4,19 +4,14 @@ using SQLite;
 
 namespace Reflect.Data;
 
-/// <summary>
-/// Owns the SQLite connection: creates the file, builds the schema and seeds the
-/// fixed reference data exactly once per install.
-/// </summary>
-/// <remarks>
-/// The file location is supplied by the caller rather than resolved here. Asking
-/// the platform for its app-data directory was this class's only dependency on
-/// MAUI, and injecting the path instead lets the whole domain live in a plain
-/// net10.0 library that tests can reference without platform target frameworks.
-/// </remarks>
+// Handles the SQLite connection - creates the file, builds the tables and
+// seeds the reference data, once per install.
+//
+// The path is passed in rather than worked out here. Asking MAUI for the app
+// data folder was the only thing in this project that needed MAUI, so passing
+// the path in lets the whole library target plain net10.0.
 public sealed class JournalDatabase : IJournalDatabase
 {
-    /// <summary>Conventional database file name.</summary>
     public const string DatabaseFileName = "reflect.db3";
 
     private const SQLiteOpenFlags OpenFlags =
@@ -30,7 +25,6 @@ public sealed class JournalDatabase : IJournalDatabase
 
     private SQLiteAsyncConnection? _connection;
 
-    /// <param name="databasePath">Full path to the SQLite file, created if absent.</param>
     public JournalDatabase(string databasePath, ILogger<JournalDatabase> logger)
     {
         if (string.IsNullOrWhiteSpace(databasePath))
@@ -42,10 +36,8 @@ public sealed class JournalDatabase : IJournalDatabase
         _logger = logger;
     }
 
-    /// <summary>Full path to the database file this instance is using.</summary>
     public string DatabasePath => _databasePath;
 
-    /// <inheritdoc />
     public async Task<SQLiteAsyncConnection> GetConnectionAsync()
     {
         // Fast path once initialisation has completed.
@@ -57,8 +49,8 @@ public sealed class JournalDatabase : IJournalDatabase
         await _initLock.WaitAsync().ConfigureAwait(false);
         try
         {
-            // Re-check inside the lock: a concurrent caller may have finished
-            // while this one was waiting.
+            // Check again inside the lock - something else may have finished
+            // setting up while this one was waiting.
             if (_connection is not null)
             {
                 return _connection;
@@ -87,11 +79,8 @@ public sealed class JournalDatabase : IJournalDatabase
         await connection.CreateTablesAsync<EntryTag, AppSettings>().ConfigureAwait(false);
     }
 
-    /// <summary>
-    /// Inserts the specification's fixed moods, tags and categories, plus the
-    /// settings row. Each block is guarded by a count check so restarting the
-    /// app never duplicates reference data.
-    /// </summary>
+    // Inserts the moods, tags and categories from the spec plus the settings
+    // row. Each one checks the count first so restarting doesn't duplicate them.
     private async Task SeedAsync(SQLiteAsyncConnection connection)
     {
         if (await connection.Table<Mood>().CountAsync().ConfigureAwait(false) == 0)

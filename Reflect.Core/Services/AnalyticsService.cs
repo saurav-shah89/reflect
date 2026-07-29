@@ -6,26 +6,21 @@ using Reflect.Services.Interfaces;
 
 namespace Reflect.Services;
 
-/// <summary>
-/// Turns stored entries into the dashboard's figures.
-/// </summary>
-/// <remarks>
-/// The whole summary is built from two queries: one row per entry in the range
-/// carrying only the four columns the aggregates need, and one grouped query for
-/// tag counts. Everything else is derived in memory from those, so adding a
-/// chart does not add a round trip. Counting is left to SQL where it collapses
-/// many rows into few; bucketing the word-count trend is done in memory because
-/// week and month boundaries are awkward to express portably in SQLite.
-/// </remarks>
+// Works out the dashboard numbers.
+//
+// It only runs two queries - one for the entries in the range and one for the
+// tag counts - and everything else is worked out from those in memory, so
+// adding another panel doesn't mean another trip to the database. The word
+// count buckets are done in C# because week and month boundaries are a pain to
+// write in SQLite.
 public sealed class AnalyticsService : IAnalyticsService
 {
-    /// <summary>Ranges up to this many days are charted day by day.</summary>
+    // Short ranges are charted per day, medium ones per week, longer per month.
     private const int DailyThresholdDays = 31;
 
-    /// <summary>Ranges up to this many days are charted week by week.</summary>
     private const int WeeklyThresholdDays = 180;
 
-    /// <summary>Tags beyond this are not charted; the tail is long and uninformative.</summary>
+    // The tag tail is long and doesn't tell you much, so only chart the top few.
     private const int TopTagCount = 10;
 
     private readonly IJournalDatabase _database;
@@ -42,7 +37,6 @@ public sealed class AnalyticsService : IAnalyticsService
         _logger = logger;
     }
 
-    /// <inheritdoc />
     public async Task<StreakSummary> GetStreaksAsync()
     {
         var connection = await _database.GetConnectionAsync().ConfigureAwait(false);
@@ -60,9 +54,8 @@ public sealed class AnalyticsService : IAnalyticsService
         var daySet = days.ToHashSet();
         var today = DateTime.Today;
 
-        // A streak should not read as broken partway through the day it might
-        // still be continued. If today is not written yet but yesterday is, the
-        // run is counted from yesterday and flagged as at risk.
+        // Don't show the streak as broken just because today isn't written yet -
+        // there's still time. Count from yesterday and mark it as at risk.
         var hasToday = daySet.Contains(today);
         var anchor = hasToday
             ? today
@@ -89,7 +82,6 @@ public sealed class AnalyticsService : IAnalyticsService
         };
     }
 
-    /// <inheritdoc />
     public async Task<AnalyticsSummary> GetSummaryAsync(DateTime from, DateTime to)
     {
         var start = from.Date;
@@ -125,8 +117,8 @@ public sealed class AnalyticsService : IAnalyticsService
         var eligibleDays = CountEligibleDays(start, end);
         var grouping = ChooseGrouping(start, end);
 
-        // Computed once and reused: the most frequent mood is simply the head of
-        // this list, which is already ordered by count.
+        // Already sorted by count, so the most frequent mood is just the first
+        // one - no need to work it out again.
         var moodCounts = BuildMoodCounts(entries, moodLookup);
 
         _logger.LogInformation(
@@ -152,7 +144,7 @@ public sealed class AnalyticsService : IAnalyticsService
         };
     }
 
-    /// <summary>Longest run of consecutive calendar days in an ordered, unique list.</summary>
+    // Longest run of consecutive days. Expects the list sorted with no repeats.
     private static int LongestRun(IReadOnlyList<DateTime> orderedDays)
     {
         var longest = 1;
@@ -174,10 +166,8 @@ public sealed class AnalyticsService : IAnalyticsService
         return longest;
     }
 
-    /// <summary>
-    /// Days in the range that could hold an entry. Future days are excluded -
-    /// a day that has not happened cannot have been missed.
-    /// </summary>
+    // Days that could have an entry. Future days don't count as missed because
+    // they haven't happened yet.
     private static int CountEligibleDays(DateTime start, DateTime end)
     {
         var lastCountable = end > DateTime.Today ? DateTime.Today : end;
@@ -202,8 +192,8 @@ public sealed class AnalyticsService : IAnalyticsService
     {
         var total = entries.Count;
 
-        // Every category is represented, including those with no entries, so the
-        // chart legend stays stable as the range changes.
+        // Include categories with no entries too, otherwise the legend keeps
+        // changing as you switch ranges.
         return Enum.GetValues<MoodCategory>()
             .Select(category =>
             {
@@ -279,11 +269,9 @@ public sealed class AnalyticsService : IAnalyticsService
             .ToArray();
     }
 
-    /// <summary>
-    /// Averages words per entry within each bucket. Buckets with no entries are
-    /// omitted rather than plotted as zero, which would read as "wrote nothing"
-    /// instead of "did not write".
-    /// </summary>
+    // Average words per entry in each bucket. Empty buckets are left out rather
+    // than plotted as zero, which would look like writing nothing rather than
+    // not writing at all.
     private static IReadOnlyList<WordCountPoint> BuildWordCountTrend(
         IReadOnlyList<SummaryRow> entries,
         TrendGrouping grouping) =>
@@ -334,13 +322,13 @@ public sealed class AnalyticsService : IAnalyticsService
         return missed;
     }
 
-    /// <summary>Projection for the streak query, which needs only dates.</summary>
+    // The streak query only needs the dates.
     private sealed class DateRow
     {
         public DateTime EntryDate { get; set; }
     }
 
-    /// <summary>Projection carrying only the columns the aggregates need.</summary>
+    // Only the columns the totals actually need.
     private sealed class SummaryRow
     {
         public DateTime EntryDate { get; set; }
@@ -349,7 +337,6 @@ public sealed class AnalyticsService : IAnalyticsService
         public int? CategoryId { get; set; }
     }
 
-    /// <summary>Result of the grouped tag-count query.</summary>
     private sealed class TagCountRow
     {
         public int TagId { get; set; }

@@ -6,16 +6,12 @@ using SQLite;
 
 namespace Reflect.Services;
 
-/// <summary>
-/// Entry CRUD and querying on top of the SQLite store.
-/// </summary>
-/// <remarks>
-/// Two invariants are maintained here rather than left to callers:
-/// every <see cref="JournalEntry.EntryDate"/> is normalised to midnight, and
-/// <see cref="JournalEntry.CreatedAt"/> is preserved across updates. Saving an
-/// entry and rewriting its tag links happen inside a single transaction so a
-/// failure part-way cannot leave an entry with a half-updated tag set.
-/// </remarks>
+// Entry CRUD and searching.
+//
+// Two things are handled here so callers don't have to: dates are always cut
+// down to midnight, and CreatedAt is kept when an entry is updated. The entry
+// and its tags are saved in one transaction, otherwise a failure halfway
+// through could leave an entry with the wrong tags on it.
 public sealed class EntryService : IEntryService
 {
     private readonly IJournalDatabase _database;
@@ -27,7 +23,6 @@ public sealed class EntryService : IEntryService
         _logger = logger;
     }
 
-    /// <inheritdoc />
     public async Task<JournalEntry?> GetByDateAsync(DateTime date)
     {
         var day = date.Date;
@@ -39,7 +34,6 @@ public sealed class EntryService : IEntryService
             .ConfigureAwait(false);
     }
 
-    /// <inheritdoc />
     public async Task<JournalEntry?> GetByIdAsync(int id)
     {
         var connection = await _database.GetConnectionAsync().ConfigureAwait(false);
@@ -50,11 +44,9 @@ public sealed class EntryService : IEntryService
             .ConfigureAwait(false);
     }
 
-    /// <inheritdoc />
     public async Task<bool> ExistsForDateAsync(DateTime date) =>
         await GetByDateAsync(date).ConfigureAwait(false) is not null;
 
-    /// <inheritdoc />
     public async Task<JournalEntry> SaveAsync(JournalEntry entry, IReadOnlyCollection<int> tagIds)
     {
         ArgumentNullException.ThrowIfNull(entry);
@@ -73,9 +65,8 @@ public sealed class EntryService : IEntryService
 
         var connection = await _database.GetConnectionAsync().ConfigureAwait(false);
 
-        // Reject a second entry on a day that is already taken. The unique index
-        // on EntryDate is the real guarantee; this check exists so the caller
-        // gets a meaningful exception rather than a raw constraint violation.
+        // The unique index is what really stops this, but checking here means
+        // the editor gets a proper error message instead of a SQLite one.
         var occupant = await connection.Table<JournalEntry>()
             .Where(existing => existing.EntryDate == day)
             .FirstOrDefaultAsync()
@@ -92,8 +83,8 @@ public sealed class EntryService : IEntryService
         }
         else
         {
-            // Preserve the original creation timestamp even if the caller passed
-            // an entry that was constructed rather than loaded.
+            // Keep the original CreatedAt, in case the caller built a new object
+            // instead of loading the existing one.
             var current = await GetByIdAsync(entry.Id).ConfigureAwait(false);
             entry.CreatedAt = current?.CreatedAt ?? now;
         }
@@ -111,8 +102,8 @@ public sealed class EntryService : IEntryService
                 transaction.Update(entry);
             }
 
-            // Replace rather than diff: the tag set is small and a full rewrite
-            // is simpler to reason about than computing added/removed pairs.
+            // Just delete them all and re-add. There are only a handful of tags
+            // per entry so working out which ones changed isn't worth it.
             transaction.Execute("DELETE FROM entry_tags WHERE EntryId = ?", entry.Id);
 
             foreach (var tagId in distinctTagIds)
@@ -128,7 +119,6 @@ public sealed class EntryService : IEntryService
         return entry;
     }
 
-    /// <inheritdoc />
     public async Task DeleteAsync(int id)
     {
         if (id <= 0)
@@ -147,13 +137,12 @@ public sealed class EntryService : IEntryService
         _logger.LogInformation("Deleted entry {EntryId}", id);
     }
 
-    /// <inheritdoc />
     public async Task<PagedResult<JournalEntry>> SearchAsync(EntryQuery query, int page, int pageSize)
     {
         ArgumentNullException.ThrowIfNull(query);
 
-        // Clamp rather than throw: a paging control asking for page 0 should show
-        // the first page, not crash the screen.
+        // Clamp instead of throwing - if the pager asks for page 0 it should
+        // just get the first page.
         page = Math.Max(1, page);
         pageSize = Math.Clamp(pageSize, 1, 200);
 
@@ -183,7 +172,6 @@ public sealed class EntryService : IEntryService
         return new PagedResult<JournalEntry>(items, total, page, pageSize);
     }
 
-    /// <inheritdoc />
     public async Task<IReadOnlyList<JournalEntry>> GetRangeAsync(DateTime from, DateTime to)
     {
         var (start, end) = OrderRange(from, to);
@@ -195,7 +183,6 @@ public sealed class EntryService : IEntryService
             .ConfigureAwait(false);
     }
 
-    /// <inheritdoc />
     public async Task<IReadOnlyList<int>> GetTagIdsAsync(int entryId)
     {
         if (entryId <= 0)
@@ -212,7 +199,6 @@ public sealed class EntryService : IEntryService
         return rows.Select(row => row.TagId).ToArray();
     }
 
-    /// <inheritdoc />
     public async Task<IReadOnlyList<DateTime>> GetEntryDatesAsync(DateTime from, DateTime to)
     {
         var (start, end) = OrderRange(from, to);
@@ -228,14 +214,11 @@ public sealed class EntryService : IEntryService
         return rows.Select(row => row.EntryDate).ToArray();
     }
 
-    /// <summary>
-    /// Builds the WHERE clause for a query along with its ordered arguments.
-    /// </summary>
-    /// <remarks>
-    /// Only <c>?</c> placeholders are ever concatenated into the SQL; every user
-    /// value travels as a bound parameter, so the dynamic clause cannot carry an
-    /// injection. Returns an empty clause when the query has no criteria.
-    /// </remarks>
+    // Builds the WHERE clause and the arguments that go with it.
+    //
+    // The only thing ever put into the SQL string itself is "?" placeholders -
+    // every value the user typed is passed as a parameter, so this can't be
+    // used for SQL injection.
     private static (string Clause, List<object> Arguments) BuildWhereClause(EntryQuery query)
     {
         var conditions = new List<string>();
@@ -243,8 +226,8 @@ public sealed class EntryService : IEntryService
 
         if (!string.IsNullOrWhiteSpace(query.SearchText))
         {
-            // LIKE wildcards inside the search term are escaped so a user typing
-            // "100%" searches for that text rather than matching everything.
+            // Escape the LIKE wildcards, otherwise searching for "100%" matches
+            // everything.
             var pattern = $"%{EscapeLikePattern(query.SearchText.Trim())}%";
             conditions.Add(@"(Title LIKE ? ESCAPE '\' OR Content LIKE ? ESCAPE '\')");
             arguments.Add(pattern);
@@ -301,25 +284,18 @@ public sealed class EntryService : IEntryService
         return (clause, arguments);
     }
 
-    /// <summary>Produces "?, ?, ?" for the given count.</summary>
+    // Builds "?, ?, ?" for an IN clause.
     private static string BuildPlaceholders(int count) =>
         string.Join(", ", Enumerable.Repeat("?", count));
 
-    /// <summary>
-    /// Escapes the SQL LIKE metacharacters so user text is matched literally.
-    /// The backslash is escaped first, otherwise it would double-escape the
-    /// backslashes this method itself inserts.
-    /// </summary>
+    // Backslash has to be done first or it escapes the backslashes added below.
     private static string EscapeLikePattern(string value) => value
         .Replace(@"\", @"\\")
         .Replace("%", @"\%")
         .Replace("_", @"\_");
 
-    /// <summary>
-    /// Counts words in Markdown content. Tokens without a letter or digit are
-    /// skipped so Markdown syntax such as "#", "-" and ">" is not counted as
-    /// words in the word-count trend.
-    /// </summary>
+    // Skips tokens with no letters or numbers, so Markdown characters like #,
+    // - and > don't get counted as words.
     private static int CountWords(string? content)
     {
         if (string.IsNullOrWhiteSpace(content))
@@ -332,7 +308,7 @@ public sealed class EntryService : IEntryService
             .Count(token => token.Any(char.IsLetterOrDigit));
     }
 
-    /// <summary>Returns the range with its bounds ordered and normalised to whole days.</summary>
+    // Swaps the dates round if they came in backwards.
     private static (DateTime Start, DateTime End) OrderRange(DateTime from, DateTime to)
     {
         var start = from.Date;
@@ -341,10 +317,6 @@ public sealed class EntryService : IEntryService
         return start <= end ? (start, end) : (end, start);
     }
 
-    /// <summary>
-    /// Rejects entries that cannot be stored meaningfully, with messages aimed at
-    /// the person who typed them.
-    /// </summary>
     private static void Validate(JournalEntry entry)
     {
         if (string.IsNullOrWhiteSpace(entry.Title))
@@ -368,14 +340,8 @@ public sealed class EntryService : IEntryService
         }
     }
 
-    /// <summary>
-    /// Removes duplicate and orphaned secondary moods.
-    /// </summary>
-    /// <remarks>
-    /// Selecting the same mood twice carries no meaning, so duplicates of the
-    /// primary or of each other are dropped. A second secondary mood with no
-    /// first is shifted up, keeping the two slots filled in order.
-    /// </remarks>
+    // Drops secondary moods that repeat the primary or each other, and moves
+    // the second one up if the first slot ended up empty.
     private static void NormaliseMoodSlots(JournalEntry entry)
     {
         var secondaries = new[] { entry.SecondaryMoodOneId, entry.SecondaryMoodTwoId }
@@ -388,13 +354,12 @@ public sealed class EntryService : IEntryService
         entry.SecondaryMoodTwoId = secondaries.Length > 1 ? secondaries[1] : null;
     }
 
-    /// <summary>Projection for reading only the tag id column.</summary>
+    // Used to read back a single column.
     private sealed class TagIdRow
     {
         public int TagId { get; set; }
     }
 
-    /// <summary>Projection for reading only the entry date column.</summary>
     private sealed class EntryDateRow
     {
         public DateTime EntryDate { get; set; }

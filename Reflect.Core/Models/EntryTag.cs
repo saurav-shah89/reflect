@@ -2,9 +2,7 @@ using SQLite;
 
 namespace Reflect.Models;
 
-/// <summary>
-/// Join row linking an entry to one of its tags (many-to-many).
-/// </summary>
+// Join table between entries and tags.
 [Table("entry_tags")]
 public class EntryTag
 {

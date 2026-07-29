@@ -11,20 +11,15 @@ using PdfColors = QuestPDF.Helpers.Colors;
 
 namespace Reflect.Services;
 
-/// <summary>
-/// Renders journal entries to PDF with QuestPDF.
-/// </summary>
-/// <remarks>
-/// Entry content is Markdown, and rather than reproduce Markdown styling in PDF
-/// it is flattened to readable prose through the shared renderer and laid out as
-/// paragraphs. A faithful Markdown-to-PDF mapping would be a project of its own;
-/// the specification asks for entries to be exportable and readable, which this
-/// satisfies without pulling in a second rendering pipeline.
-///
-/// QuestPDF is used under its Community licence, which covers individuals and
-/// small organisations. The licence type must be declared before the first
-/// document is generated or the library refuses to render.
-/// </remarks>
+// Exports entries to PDF using QuestPDF.
+//
+// Entry content is Markdown. Rather than try to recreate all the Markdown
+// styling in the PDF, it's flattened to plain text and laid out as paragraphs.
+// Doing it properly would be a project on its own and the spec just asks for
+// the entries to be exportable and readable.
+//
+// QuestPDF is used under the Community licence, which covers individuals. The
+// licence has to be set before the first document or the library won't render.
 public sealed class PdfJournalExporter : IJournalExporter
 {
     private readonly IEntryService _entries;
@@ -47,14 +42,12 @@ public sealed class PdfJournalExporter : IJournalExporter
         _logger = logger;
     }
 
-    /// <inheritdoc />
     public string SuggestFileName(DateTime from, DateTime to)
     {
         var (start, end) = Order(from, to);
         return $"reflect-journal-{start:yyyy-MM-dd}-to-{end:yyyy-MM-dd}.pdf";
     }
 
-    /// <inheritdoc />
     public async Task<int> ExportRangeAsync(DateTime from, DateTime to, Stream destination)
     {
         ArgumentNullException.ThrowIfNull(destination);
@@ -69,9 +62,8 @@ public sealed class PdfJournalExporter : IJournalExporter
         var categoryNames = categories.ToDictionary(category => category.Id, category => category.Name);
         var tagNames = tags.ToDictionary(tag => tag.Id, tag => tag.Name);
 
-        // Tag ids are fetched per entry rather than in one query because the
-        // export is an occasional, user-initiated action where clarity beats
-        // shaving a few round trips.
+        // One query per entry rather than one big one. Exporting is something
+        // you do occasionally, so the simpler code is worth more here.
         var tagsByEntry = new Dictionary<int, IReadOnlyList<int>>();
         foreach (var entry in entries)
         {
@@ -132,7 +124,7 @@ public sealed class PdfJournalExporter : IJournalExporter
         return entries.Count;
     }
 
-    /// <summary>Lays out a single entry: date, title, metadata line, then the prose.</summary>
+    // One entry: date, title, the mood/category line, then the text.
     private void ComposeEntry(
         IPdfContainer container,
         JournalEntry entry,
@@ -204,16 +196,12 @@ public sealed class PdfJournalExporter : IJournalExporter
         return string.Join("   |   ", parts);
     }
 
-    /// <summary>
-    /// Splits flattened content into paragraphs so the writer's structure
-    /// survives into the document.
-    /// </summary>
-    /// <remarks>
-    /// Markdig's plain-text renderer emits one line per Markdown block - a
-    /// heading, a paragraph, a list item - separated by single newlines rather
-    /// than blank lines. Splitting on blank lines therefore collapses an entire
-    /// entry onto one line, which is what an earlier version did.
-    /// </remarks>
+    // Splits the text into paragraphs.
+    //
+    // Careful here - Markdig's plain text output puts one newline between
+    // blocks, not a blank line. I originally split on "\n\n" and every entry
+    // came out as a single long paragraph. Took ages to spot because the PDF
+    // still looked fine at a glance.
     private static IEnumerable<string> SplitParagraphs(string text) => text
         .Replace("\r\n", "\n")
         .Split('\n', StringSplitOptions.RemoveEmptyEntries)
