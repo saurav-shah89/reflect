@@ -121,13 +121,20 @@ else
             }
         </span>
 
-        <MudSelect T="int" Value="_pageSize" ValueChanged="OnPageSizeChanged"
-                   Label="Per page" Dense="true" Variant="Variant.Text" Style="max-width: 110px;">
-            @foreach (var size in PageSizes)
-            {
-                <MudSelectItem T="int" Value="@size">@size</MudSelectItem>
-            }
-        </MudSelect>
+        @* The component's own floating label collided with the result count on
+           this row, so the label is set as a ruled caption beside the control. *@
+        <div class="d-flex align-center" style="gap: 10px;">
+            <span class="lp-label">Per page</span>
+            <MudSelect T="int" Value="_pageSize" ValueChanged="OnPageSizeChanged"
+                       Dense="true" Variant="Variant.Text"
+                       aria-label="Results per page"
+                       Style="max-width: 64px;">
+                @foreach (var size in PageSizes)
+                {
+                    <MudSelectItem T="int" Value="@size">@size</MudSelectItem>
+                }
+            </MudSelect>
+        </div>
     </div>
 
     @if (_isSearching && _result.TotalCount == 0)
