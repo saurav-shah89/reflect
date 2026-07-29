@@ -162,3 +162,17 @@
         z-index: 1;
     }
 }
+
+/* Full-window lock screen shown in place of the app while the journal is locked. */
+.lock-screen {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 100vh;
+    padding: 1rem;
+}
+
+.lock-panel {
+    width: 100%;
+    max-width: 380px;
+}

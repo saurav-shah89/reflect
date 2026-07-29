@@ -1,0 +1,96 @@
+@inject ISettingsService Settings
+@inject AppLockState LockState
+@inject ILogger<LockScreen> Logger
+
+@* Shown in place of the whole app while the journal is locked. Nothing behind
+   it is rendered, so entry content never reaches the DOM before unlocking. *@
+<div class="lock-screen">
+    <MudPaper Outlined="true" Class="pa-8 lock-panel">
+        <div class="d-flex flex-column align-center mb-4">
+            <MudIcon Icon="@Icons.Material.Filled.Lock" Size="Size.Large" Color="Color.Primary" />
+            <MudText Typo="Typo.h5" Class="mt-2">Reflect</MudText>
+            <MudText Typo="Typo.body2">Your journal is locked.</MudText>
+        </div>
+
+        <MudTextField @bind-Value="_passphrase"
+                      Label="Passphrase or PIN"
+                      Variant="Variant.Outlined"
+                      InputType="InputType.Password"
+                      Immediate="true"
+                      OnKeyDown="OnKeyDown"
+                      Disabled="_isChecking"
+                      Class="mb-3" />
+
+        @if (_error is not null)
+        {
+            <MudAlert Severity="Severity.Error" Dense="true" Class="mb-3">@_error</MudAlert>
+        }
+
+        <MudButton Variant="Variant.Filled"
+                   Color="Color.Primary"
+                   FullWidth="true"
+                   Disabled="@(_isChecking || string.IsNullOrEmpty(_passphrase))"
+                   OnClick="UnlockAsync">
+            @(_isChecking ? "Checking…" : "Unlock")
+        </MudButton>
+
+        <MudText Typo="Typo.caption" Class="mt-4 d-block text-center">
+            There is no recovery. If you forget it, the journal cannot be opened.
+        </MudText>
+    </MudPaper>
+</div>
+
+@code {
+    private string _passphrase = string.Empty;
+    private string? _error;
+    private bool _isChecking;
+    private int _failedAttempts;
+
+    private async Task OnKeyDown(KeyboardEventArgs args)
+    {
+        if (args.Key == "Enter")
+        {
+            await UnlockAsync();
+        }
+    }
+
+    private async Task UnlockAsync()
+    {
+        if (string.IsNullOrEmpty(_passphrase))
+        {
+            return;
+        }
+
+        _isChecking = true;
+        _error = null;
+
+        try
+        {
+            if (await Settings.VerifyPassphraseAsync(_passphrase))
+            {
+                _passphrase = string.Empty;
+                _failedAttempts = 0;
+                LockState.Unlock();
+                return;
+            }
+
+            _failedAttempts++;
+            _passphrase = string.Empty;
+
+            // Deliberately vague: naming which part was wrong would help someone
+            // guessing. The count is shown only as a nudge for the owner.
+            _error = _failedAttempts == 1
+                ? "That passphrase is not correct."
+                : $"That passphrase is not correct. {_failedAttempts} failed attempts.";
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Unlock check failed");
+            _error = "Could not check the passphrase. Try again.";
+        }
+        finally
+        {
+            _isChecking = false;
+        }
+    }
+}

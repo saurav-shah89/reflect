@@ -1,0 +1,322 @@
+@page "/settings"
+@inject ISettingsService SettingsService
+@inject AppLockState LockState
+@inject ISnackbar Snackbar
+@inject ILogger<Settings> Logger
+
+<PageTitle>Settings &middot; Reflect</PageTitle>
+
+<MudText Typo="Typo.h4" GutterBottom="true">Settings</MudText>
+
+@if (_loadFailure is not null)
+{
+    <MudAlert Severity="Severity.Error">@_loadFailure</MudAlert>
+}
+else if (_isLoading)
+{
+    <MudProgressCircular Indeterminate="true" Color="Color.Primary" />
+}
+else
+{
+    <MudPaper Outlined="true" Class="pa-4 mb-4">
+        <MudText Typo="Typo.h6" GutterBottom="true">Security</MudText>
+
+        @if (!_isLockEnabled)
+        {
+            <MudText Typo="Typo.body2" Class="mb-4">
+                Your journal is not protected. Set a passphrase or PIN and it will be
+                required each time the app opens.
+            </MudText>
+
+            <MudTextField @bind-Value="_newPassphrase"
+                          Label="New passphrase or PIN"
+                          Variant="Variant.Outlined"
+                          InputType="InputType.Password"
+                          Immediate="true"
+                          HelperText="@($"At least {MinimumLength} characters.")"
+                          Class="mb-3"
+                          Style="max-width: 420px;" />
+
+            <MudTextField @bind-Value="_confirmPassphrase"
+                          Label="Confirm it"
+                          Variant="Variant.Outlined"
+                          InputType="InputType.Password"
+                          Immediate="true"
+                          Class="mb-3"
+                          Style="max-width: 420px;" />
+
+            <MudAlert Severity="Severity.Warning" Dense="true" Class="mb-3" Style="max-width: 420px;">
+                There is no recovery. If you forget it, the journal cannot be opened.
+            </MudAlert>
+
+            <MudButton Variant="Variant.Filled"
+                       Color="Color.Primary"
+                       StartIcon="@Icons.Material.Filled.Lock"
+                       Disabled="_isBusy"
+                       OnClick="EnableLockAsync">Turn on the lock</MudButton>
+        }
+        else
+        {
+            <MudAlert Severity="Severity.Success" Dense="true" Class="mb-4" Style="max-width: 420px;">
+                Your journal is protected.
+            </MudAlert>
+
+            <MudExpansionPanels Elevation="0">
+                <MudExpansionPanel Text="Change the passphrase">
+                    <MudTextField @bind-Value="_currentPassphrase"
+                                  Label="Current passphrase"
+                                  Variant="Variant.Outlined"
+                                  InputType="InputType.Password"
+                                  Immediate="true"
+                                  Class="mb-3"
+                                  Style="max-width: 420px;" />
+                    <MudTextField @bind-Value="_newPassphrase"
+                                  Label="New passphrase"
+                                  Variant="Variant.Outlined"
+                                  InputType="InputType.Password"
+                                  Immediate="true"
+                                  Class="mb-3"
+                                  Style="max-width: 420px;" />
+                    <MudTextField @bind-Value="_confirmPassphrase"
+                                  Label="Confirm the new one"
+                                  Variant="Variant.Outlined"
+                                  InputType="InputType.Password"
+                                  Immediate="true"
+                                  Class="mb-3"
+                                  Style="max-width: 420px;" />
+                    <MudButton Variant="Variant.Filled"
+                               Color="Color.Primary"
+                               Disabled="_isBusy"
+                               OnClick="ChangePassphraseAsync">Change it</MudButton>
+                </MudExpansionPanel>
+
+                <MudExpansionPanel Text="Turn the lock off">
+                    <MudText Typo="Typo.body2" Class="mb-3">
+                        Your entries stay where they are; they simply stop being protected.
+                    </MudText>
+                    <MudTextField @bind-Value="_removePassphrase"
+                                  Label="Current passphrase"
+                                  Variant="Variant.Outlined"
+                                  InputType="InputType.Password"
+                                  Immediate="true"
+                                  Class="mb-3"
+                                  Style="max-width: 420px;" />
+                    <MudButton Variant="Variant.Outlined"
+                               Color="Color.Error"
+                               Disabled="_isBusy"
+                               OnClick="DisableLockAsync">Turn the lock off</MudButton>
+                </MudExpansionPanel>
+            </MudExpansionPanels>
+        }
+
+        @if (_securityMessage is not null)
+        {
+            <MudAlert Severity="@_securitySeverity" Dense="true" Class="mt-3" Style="max-width: 420px;">
+                @_securityMessage
+            </MudAlert>
+        }
+    </MudPaper>
+
+    <MudPaper Outlined="true" Class="pa-4">
+        <MudText Typo="Typo.h6" GutterBottom="true">Appearance</MudText>
+        <MudText Typo="Typo.body2" Class="mb-3">
+            The theme is remembered between sessions. It can also be flipped from the
+            app bar at any time.
+        </MudText>
+
+        <MudSelect T="string" Value="_theme" ValueChanged="OnThemeChangedAsync"
+                   Label="Theme" Variant="Variant.Outlined" Style="max-width: 240px;">
+            <MudSelectItem T="string" Value="@("light")">Light</MudSelectItem>
+            <MudSelectItem T="string" Value="@("dark")">Dark</MudSelectItem>
+        </MudSelect>
+    </MudPaper>
+}
+
+@code {
+    // Fully qualified: the injected property is also called SettingsService, so
+    // the bare name would resolve to it rather than to the type.
+    private const int MinimumLength = Reflect.Services.SettingsService.MinimumLength;
+
+    private bool _isLockEnabled;
+    private string _theme = "light";
+
+    private string _currentPassphrase = string.Empty;
+    private string _newPassphrase = string.Empty;
+    private string _confirmPassphrase = string.Empty;
+    private string _removePassphrase = string.Empty;
+
+    private bool _isLoading = true;
+    private bool _isBusy;
+    private string? _loadFailure;
+    private string? _securityMessage;
+    private Severity _securitySeverity = Severity.Info;
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            _isLockEnabled = await SettingsService.IsLockEnabledAsync();
+            _theme = await SettingsService.GetThemeAsync();
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Failed to load settings");
+            _loadFailure = $"Could not load settings: {ex.Message}";
+        }
+        finally
+        {
+            _isLoading = false;
+        }
+    }
+
+    private async Task EnableLockAsync()
+    {
+        if (!PassphrasesMatch())
+        {
+            return;
+        }
+
+        _isBusy = true;
+
+        try
+        {
+            await SettingsService.SetPassphraseAsync(_newPassphrase);
+            _isLockEnabled = true;
+            ClearFields();
+            Report("Your journal is now protected.", Severity.Success);
+
+            // The session stays unlocked - the person who just set the passphrase
+            // has plainly proved they know it.
+            LockState.Unlock();
+            LockState.NotifyConfigurationChanged();
+        }
+        catch (ArgumentException ex)
+        {
+            Report(ex.Message, Severity.Warning);
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Failed to enable the lock");
+            Report("Could not turn the lock on.", Severity.Error);
+        }
+        finally
+        {
+            _isBusy = false;
+        }
+    }
+
+    private async Task ChangePassphraseAsync()
+    {
+        if (!PassphrasesMatch())
+        {
+            return;
+        }
+
+        _isBusy = true;
+
+        try
+        {
+            // Prove the current passphrase before replacing it, so an unlocked
+            // session left open cannot be used to lock the owner out.
+            if (!await SettingsService.VerifyPassphraseAsync(_currentPassphrase))
+            {
+                Report("The current passphrase is not correct.", Severity.Error);
+                return;
+            }
+
+            await SettingsService.SetPassphraseAsync(_newPassphrase);
+            ClearFields();
+            Report("Passphrase changed.", Severity.Success);
+        }
+        catch (ArgumentException ex)
+        {
+            Report(ex.Message, Severity.Warning);
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Failed to change the passphrase");
+            Report("Could not change the passphrase.", Severity.Error);
+        }
+        finally
+        {
+            _isBusy = false;
+        }
+    }
+
+    private async Task DisableLockAsync()
+    {
+        _isBusy = true;
+
+        try
+        {
+            if (await SettingsService.DisableLockAsync(_removePassphrase))
+            {
+                _isLockEnabled = false;
+                ClearFields();
+                Report("The lock is off. Your entries are unchanged.", Severity.Info);
+                LockState.NotifyConfigurationChanged();
+            }
+            else
+            {
+                Report("That passphrase is not correct.", Severity.Error);
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Failed to disable the lock");
+            Report("Could not turn the lock off.", Severity.Error);
+        }
+        finally
+        {
+            _isBusy = false;
+        }
+    }
+
+    private async Task OnThemeChangedAsync(string theme)
+    {
+        _theme = theme;
+
+        try
+        {
+            await SettingsService.SetThemeAsync(theme);
+            Snackbar.Add("Theme saved. It applies from the next time the app opens, or use the app bar toggle now.", Severity.Info);
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Failed to save the theme");
+            Snackbar.Add("Could not save the theme.", Severity.Error);
+        }
+    }
+
+    /// <summary>Checks the two new-passphrase boxes agree, reporting if not.</summary>
+    private bool PassphrasesMatch()
+    {
+        if (string.IsNullOrWhiteSpace(_newPassphrase))
+        {
+            Report("Enter a passphrase.", Severity.Warning);
+            return false;
+        }
+
+        if (_newPassphrase != _confirmPassphrase)
+        {
+            Report("The two passphrases do not match.", Severity.Warning);
+            return false;
+        }
+
+        return true;
+    }
+
+    private void ClearFields()
+    {
+        _currentPassphrase = string.Empty;
+        _newPassphrase = string.Empty;
+        _confirmPassphrase = string.Empty;
+        _removePassphrase = string.Empty;
+    }
+
+    private void Report(string message, Severity severity)
+    {
+        _securityMessage = message;
+        _securitySeverity = severity;
+    }
+}

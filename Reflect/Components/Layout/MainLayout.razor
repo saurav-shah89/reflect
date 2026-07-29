@@ -1,4 +1,8 @@
 @inherits LayoutComponentBase
+@implements IDisposable
+@inject ISettingsService Settings
+@inject AppLockState LockState
+@inject ILogger<MainLayout> Logger
 
 @* MudBlazor providers must sit above the routed content: popovers, dialogs and
    snackbars render into these, so components anywhere in the tree can raise them. *@
@@ -7,37 +11,64 @@
 <MudDialogProvider />
 <MudSnackbarProvider />
 
-<MudLayout>
-    <MudAppBar Elevation="1">
-        <MudIconButton Icon="@Icons.Material.Filled.Menu"
-                       Color="Color.Inherit"
-                       Edge="Edge.Start"
-                       OnClick="ToggleDrawer"
-                       aria-label="Toggle navigation" />
-        <MudText Typo="Typo.h6" Class="ml-2">Reflect</MudText>
-        <MudSpacer />
-        <MudIconButton Icon="@ThemeIcon"
-                       Color="Color.Inherit"
-                       OnClick="ToggleTheme"
-                       aria-label="@ThemeLabel"
-                       Title="@ThemeLabel" />
-    </MudAppBar>
+@if (_isStarting)
+{
+    @* Nothing is rendered until the lock state is known, so a locked journal
+       never flashes its contents on the way to the lock screen. *@
+    <div class="lock-screen">
+        <MudProgressCircular Indeterminate="true" Color="Color.Primary" />
+    </div>
+}
+else if (_isLocked)
+{
+    <LockScreen />
+}
+else
+{
+    <MudLayout>
+        <MudAppBar Elevation="1">
+            <MudIconButton Icon="@Icons.Material.Filled.Menu"
+                           Color="Color.Inherit"
+                           Edge="Edge.Start"
+                           OnClick="ToggleDrawer"
+                           aria-label="Toggle navigation" />
+            <MudText Typo="Typo.h6" Class="ml-2">Reflect</MudText>
+            <MudSpacer />
+            @if (_isLockConfigured)
+            {
+                <MudIconButton Icon="@Icons.Material.Filled.Lock"
+                               Color="Color.Inherit"
+                               OnClick="LockNow"
+                               aria-label="Lock the journal"
+                               Title="Lock the journal" />
+            }
+            <MudIconButton Icon="@ThemeIcon"
+                           Color="Color.Inherit"
+                           OnClick="ToggleThemeAsync"
+                           aria-label="@ThemeLabel"
+                           Title="@ThemeLabel" />
+        </MudAppBar>
 
-    <MudDrawer @bind-Open="_drawerOpen" Elevation="1" ClipMode="DrawerClipMode.Always">
-        <NavMenu />
-    </MudDrawer>
+        <MudDrawer @bind-Open="_drawerOpen" Elevation="1" ClipMode="DrawerClipMode.Always">
+            <NavMenu />
+        </MudDrawer>
 
-    <MudMainContent>
-        <MudContainer MaxWidth="MaxWidth.Large" Class="py-6">
-            @Body
-        </MudContainer>
-    </MudMainContent>
-</MudLayout>
+        <MudMainContent>
+            <MudContainer MaxWidth="MaxWidth.Large" Class="py-6">
+                @Body
+            </MudContainer>
+        </MudMainContent>
+    </MudLayout>
+}
 
 @code {
     private MudThemeProvider? _themeProvider;
     private bool _drawerOpen = true;
     private bool _isDarkMode;
+    private bool _isStarting = true;
+    private bool _isLockConfigured;
+
+    private bool _isLocked => _isLockConfigured && !LockState.IsUnlocked;
 
     private string ThemeIcon => _isDarkMode
         ? Icons.Material.Filled.LightMode
@@ -45,23 +76,71 @@
 
     private string ThemeLabel => _isDarkMode ? "Switch to light theme" : "Switch to dark theme";
 
-    /// <summary>
-    /// Adopts the operating system's light or dark preference on first render.
-    /// Replaced by the persisted AppSettings.Theme value once the settings
-    /// service lands.
-    /// </summary>
-    protected override async Task OnAfterRenderAsync(bool firstRender)
+    protected override void OnInitialized()
     {
-        if (!firstRender || _themeProvider is null)
-        {
-            return;
-        }
-
-        _isDarkMode = await _themeProvider.GetSystemDarkModeAsync();
-        StateHasChanged();
+        LockState.Changed += OnLockChanged;
+        LockState.ConfigurationChanged += OnLockConfigurationChanged;
     }
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            _isLockConfigured = await Settings.IsLockEnabledAsync();
+            _isDarkMode = await Settings.GetThemeAsync() == "dark";
+        }
+        catch (Exception ex)
+        {
+            // Failing open here would expose a locked journal, so treat an
+            // unreadable settings row as locked and let the unlock screen
+            // surface the problem.
+            Logger.LogError(ex, "Could not read settings at startup");
+            _isLockConfigured = true;
+        }
+        finally
+        {
+            _isStarting = false;
+        }
+    }
+
+    private void OnLockChanged() => InvokeAsync(StateHasChanged);
 
     private void ToggleDrawer() => _drawerOpen = !_drawerOpen;
 
-    private void ToggleTheme() => _isDarkMode = !_isDarkMode;
+    private void LockNow() => LockState.Lock();
+
+    /// <summary>
+    /// Flips the theme and persists it, so the choice survives a restart.
+    /// </summary>
+    private async Task ToggleThemeAsync()
+    {
+        _isDarkMode = !_isDarkMode;
+
+        try
+        {
+            await Settings.SetThemeAsync(_isDarkMode ? "dark" : "light");
+        }
+        catch (Exception ex)
+        {
+            // The theme has already changed on screen; losing the preference is
+            // worth a log but not worth interrupting the user.
+            Logger.LogError(ex, "Could not persist the theme preference");
+        }
+    }
+
+    /// <summary>
+    /// Re-reads whether a lock is configured, so the app bar's lock button
+    /// appears or disappears as soon as the credential is set or removed.
+    /// </summary>
+    private void OnLockConfigurationChanged() => InvokeAsync(async () =>
+    {
+        _isLockConfigured = await Settings.IsLockEnabledAsync();
+        StateHasChanged();
+    });
+
+    public void Dispose()
+    {
+        LockState.Changed -= OnLockChanged;
+        LockState.ConfigurationChanged -= OnLockConfigurationChanged;
+    }
 }
