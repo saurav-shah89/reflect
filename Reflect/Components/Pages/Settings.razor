@@ -18,124 +18,159 @@ else if (_isLoading)
 }
 else
 {
-    <MudPaper Outlined="true" Class="pa-4 mb-4">
-        <MudText Typo="Typo.h6" GutterBottom="true">Security</MudText>
+    <div class="lp-stagger" style="max-width: 620px;">
 
-        @if (!_isLockEnabled)
-        {
-            <MudText Typo="Typo.body2" Class="mb-4">
-                Your journal is not protected. Set a passphrase or PIN and it will be
-                required each time the app opens.
-            </MudText>
+        <div class="lp-block mb-6">
+            <div class="d-flex align-center mb-5" style="gap: 12px;">
+                <span class="lp-monogram" style="width: 38px; height: 38px;">
+                    <MudIcon Icon="@(_isLockEnabled ? Icons.Material.Filled.Lock : Icons.Material.Filled.LockOpen)"
+                             Size="Size.Small" />
+                </span>
+                <div>
+                    <MudText Typo="Typo.h6">Security</MudText>
+                    <div class="lp-label mt-1" style="letter-spacing: 0.04em;">
+                        @(_isLockEnabled
+                            ? "A passphrase is required each time the app opens"
+                            : "This journal opens without a passphrase")
+                    </div>
+                </div>
+            </div>
 
-            <MudTextField @bind-Value="_newPassphrase"
-                          Label="New passphrase or PIN"
-                          Variant="Variant.Outlined"
-                          InputType="InputType.Password"
-                          Immediate="true"
-                          HelperText="@($"At least {MinimumLength} characters.")"
-                          Class="mb-3"
-                          Style="max-width: 420px;" />
+            @if (!_isLockEnabled)
+            {
+                <div class="lp-label mb-2">Set a passphrase</div>
 
-            <MudTextField @bind-Value="_confirmPassphrase"
-                          Label="Confirm it"
-                          Variant="Variant.Outlined"
-                          InputType="InputType.Password"
-                          Immediate="true"
-                          Class="mb-3"
-                          Style="max-width: 420px;" />
+                <MudTextField @bind-Value="_newPassphrase"
+                              Label="New passphrase or PIN"
+                              Variant="Variant.Outlined"
+                              InputType="InputType.Password"
+                              Immediate="true"
+                              HelperText="@($"At least {MinimumLength} characters.")"
+                              Class="mb-3"
+                              Style="max-width: 420px; border-radius: 0;" />
 
-            <MudAlert Severity="Severity.Warning" Dense="true" Class="mb-3" Style="max-width: 420px;">
-                There is no recovery. If you forget it, the journal cannot be opened.
-            </MudAlert>
+                <MudTextField @bind-Value="_confirmPassphrase"
+                              Label="Confirm it"
+                              Variant="Variant.Outlined"
+                              InputType="InputType.Password"
+                              Immediate="true"
+                              Class="mb-4"
+                              Style="max-width: 420px; border-radius: 0;" />
 
-            <MudButton Variant="Variant.Filled"
-                       Color="Color.Primary"
-                       StartIcon="@Icons.Material.Filled.Lock"
-                       Disabled="_isBusy"
-                       OnClick="EnableLockAsync">Turn on the lock</MudButton>
-        }
-        else
-        {
-            <MudAlert Severity="Severity.Success" Dense="true" Class="mb-4" Style="max-width: 420px;">
-                Your journal is protected.
-            </MudAlert>
-
-            <MudExpansionPanels Elevation="0">
-                <MudExpansionPanel Text="Change the passphrase">
-                    <MudTextField @bind-Value="_currentPassphrase"
-                                  Label="Current passphrase"
-                                  Variant="Variant.Outlined"
-                                  InputType="InputType.Password"
-                                  Immediate="true"
-                                  Class="mb-3"
-                                  Style="max-width: 420px;" />
-                    <MudTextField @bind-Value="_newPassphrase"
-                                  Label="New passphrase"
-                                  Variant="Variant.Outlined"
-                                  InputType="InputType.Password"
-                                  Immediate="true"
-                                  Class="mb-3"
-                                  Style="max-width: 420px;" />
-                    <MudTextField @bind-Value="_confirmPassphrase"
-                                  Label="Confirm the new one"
-                                  Variant="Variant.Outlined"
-                                  InputType="InputType.Password"
-                                  Immediate="true"
-                                  Class="mb-3"
-                                  Style="max-width: 420px;" />
-                    <MudButton Variant="Variant.Filled"
-                               Color="Color.Primary"
-                               Disabled="_isBusy"
-                               OnClick="ChangePassphraseAsync">Change it</MudButton>
-                </MudExpansionPanel>
-
-                <MudExpansionPanel Text="Turn the lock off">
-                    <MudText Typo="Typo.body2" Class="mb-3">
-                        Your entries stay where they are; they simply stop being protected.
+                @* Set as a rule-topped aside rather than an alert box: the warning is
+                   permanent copy about how the lock works, not a transient result. *@
+                <div class="lp-block-light mb-5" style="max-width: 420px;">
+                    <div class="lp-label lp-label-accent mb-2">No recovery</div>
+                    <MudText Typo="Typo.body2">
+                        If you forget it, the journal cannot be opened. There is no reset.
                     </MudText>
-                    <MudTextField @bind-Value="_removePassphrase"
-                                  Label="Current passphrase"
-                                  Variant="Variant.Outlined"
-                                  InputType="InputType.Password"
-                                  Immediate="true"
-                                  Class="mb-3"
-                                  Style="max-width: 420px;" />
-                    <MudButton Variant="Variant.Outlined"
-                               Color="Color.Error"
-                               Disabled="_isBusy"
-                               OnClick="DisableLockAsync">Turn the lock off</MudButton>
-                </MudExpansionPanel>
-            </MudExpansionPanels>
-        }
+                </div>
 
-        @if (_securityMessage is not null)
-        {
-            <MudAlert Severity="@_securitySeverity" Dense="true" Class="mt-3" Style="max-width: 420px;">
-                @_securityMessage
-            </MudAlert>
-        }
-    </MudPaper>
+                <MudButton Variant="Variant.Filled"
+                           Color="Color.Primary"
+                           StartIcon="@Icons.Material.Filled.Lock"
+                           Disabled="_isBusy"
+                           OnClick="EnableLockAsync"
+                           Style="@ActionButtonStyle">Turn on the lock</MudButton>
+            }
+            else
+            {
+                <MudExpansionPanels Elevation="0" Class="mb-2">
+                    <MudExpansionPanel Text="Change the passphrase">
+                        <MudTextField @bind-Value="_currentPassphrase"
+                                      Label="Current passphrase"
+                                      Variant="Variant.Outlined"
+                                      InputType="InputType.Password"
+                                      Immediate="true"
+                                      Class="mb-3"
+                                      Style="max-width: 420px; border-radius: 0;" />
+                        <MudTextField @bind-Value="_newPassphrase"
+                                      Label="New passphrase"
+                                      Variant="Variant.Outlined"
+                                      InputType="InputType.Password"
+                                      Immediate="true"
+                                      Class="mb-3"
+                                      Style="max-width: 420px; border-radius: 0;" />
+                        <MudTextField @bind-Value="_confirmPassphrase"
+                                      Label="Confirm the new one"
+                                      Variant="Variant.Outlined"
+                                      InputType="InputType.Password"
+                                      Immediate="true"
+                                      Class="mb-4"
+                                      Style="max-width: 420px; border-radius: 0;" />
+                        <MudButton Variant="Variant.Filled"
+                                   Color="Color.Primary"
+                                   Disabled="_isBusy"
+                                   OnClick="ChangePassphraseAsync"
+                                   Style="@ActionButtonStyle">Change it</MudButton>
+                    </MudExpansionPanel>
 
-    <MudPaper Outlined="true" Class="pa-4">
-        <MudText Typo="Typo.h6" GutterBottom="true">Appearance</MudText>
-        <MudText Typo="Typo.body2" Class="mb-3">
-            The theme is remembered between sessions. It can also be flipped from the
-            app bar at any time.
-        </MudText>
+                    <MudExpansionPanel Text="Turn the lock off">
+                        <MudText Typo="Typo.body2" Class="mb-3">
+                            Your entries stay where they are; they simply stop being protected.
+                        </MudText>
+                        <MudTextField @bind-Value="_removePassphrase"
+                                      Label="Current passphrase"
+                                      Variant="Variant.Outlined"
+                                      InputType="InputType.Password"
+                                      Immediate="true"
+                                      Class="mb-4"
+                                      Style="max-width: 420px; border-radius: 0;" />
+                        <MudButton Variant="Variant.Outlined"
+                                   Color="Color.Error"
+                                   Disabled="_isBusy"
+                                   OnClick="DisableLockAsync"
+                                   Style="@ActionButtonStyle">Turn the lock off</MudButton>
+                    </MudExpansionPanel>
+                </MudExpansionPanels>
+            }
 
-        <MudSelect T="string" Value="_theme" ValueChanged="OnThemeChangedAsync"
-                   Label="Theme" Variant="Variant.Outlined" Style="max-width: 240px;">
-            <MudSelectItem T="string" Value="@("light")">Light</MudSelectItem>
-            <MudSelectItem T="string" Value="@("dark")">Dark</MudSelectItem>
-        </MudSelect>
-    </MudPaper>
+            @if (_securityMessage is not null)
+            {
+                <MudAlert Severity="@_securitySeverity" Dense="true" Class="mt-4"
+                          Style="max-width: 420px; border-radius: 0;">
+                    @_securityMessage
+                </MudAlert>
+            }
+        </div>
+
+        <div class="lp-block">
+            <div class="d-flex align-center mb-5" style="gap: 12px;">
+                <span class="lp-monogram" style="width: 38px; height: 38px;">
+                    <MudIcon Icon="@Icons.Material.Filled.Contrast" Size="Size.Small" />
+                </span>
+                <div>
+                    <MudText Typo="Typo.h6">Appearance</MudText>
+                    <div class="lp-label mt-1" style="letter-spacing: 0.04em;">
+                        Remembered between sessions
+                    </div>
+                </div>
+            </div>
+
+            <div class="lp-label mb-2">Theme</div>
+            <MudSelect T="string" Value="_theme" ValueChanged="OnThemeChangedAsync"
+                       Variant="Variant.Outlined" Margin="Margin.Dense"
+                       Style="max-width: 240px; border-radius: 0;">
+                <MudSelectItem T="string" Value="@("light")">Light</MudSelectItem>
+                <MudSelectItem T="string" Value="@("dark")">Dark</MudSelectItem>
+            </MudSelect>
+
+            <div class="lp-label mt-3" style="letter-spacing: 0.04em;">
+                It can also be flipped from the sidebar at any time.
+            </div>
+        </div>
+    </div>
 }
 
 @code {
     // Fully qualified: the injected property is also called SettingsService, so
     // the bare name would resolve to it rather than to the type.
     private const int MinimumLength = Reflect.Services.SettingsService.MinimumLength;
+
+    /// <summary>The letterpress action button: square, spaced small caps.</summary>
+    private const string ActionButtonStyle =
+        "border-radius: 0; padding: 11px 18px; font-size: 0.66rem; " +
+        "letter-spacing: 0.2em; text-transform: uppercase; font-weight: 600;";
 
     private bool _isLockEnabled;
     private string _theme = "light";
