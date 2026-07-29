@@ -1,0 +1,222 @@
+@page "/export"
+@inject IJournalExporter Exporter
+@inject IEntryService EntryService
+@inject ISnackbar Snackbar
+@inject ILogger<Export> Logger
+
+<PageTitle>Export &middot; Reflect</PageTitle>
+
+<MudText Typo="Typo.h4" GutterBottom="true">Export</MudText>
+<MudText Typo="Typo.subtitle1" Class="mb-6">
+    Save a range of entries as a PDF you can keep, print or share.
+</MudText>
+
+<MudPaper Outlined="true" Class="pa-4" Style="max-width: 620px;">
+    <MudDateRangePicker Label="Date range"
+                        DateRange="_dateRange"
+                        DateRangeChanged="OnRangeChangedAsync"
+                        Variant="Variant.Outlined"
+                        MaxDate="DateTime.Today"
+                        Class="mb-3" />
+
+    <div class="d-flex flex-wrap gap-2 mb-4">
+        @foreach (var preset in Presets)
+        {
+            <MudButton Variant="Variant.Outlined" Color="Color.Primary" Size="Size.Small"
+                       OnClick="@(() => ApplyPresetAsync(preset.Days))">@preset.Label</MudButton>
+        }
+        <MudButton Variant="Variant.Outlined" Color="Color.Primary" Size="Size.Small"
+                   OnClick="ApplyEverythingAsync">Everything</MudButton>
+    </div>
+
+    <MudAlert Severity="@(_entriesInRange == 0 ? Severity.Warning : Severity.Info)"
+              Dense="true" Variant="Variant.Outlined" Class="mb-4">
+        @if (_isCounting)
+        {
+            <span>Counting…</span>
+        }
+        else if (_entriesInRange == 0)
+        {
+            <span>No entries in this range. There would be nothing to export.</span>
+        }
+        else
+        {
+            <span>@_entriesInRange entr@(_entriesInRange == 1 ? "y" : "ies") will be exported.</span>
+        }
+    </MudAlert>
+
+    <MudButton Variant="Variant.Filled"
+               Color="Color.Primary"
+               StartIcon="@Icons.Material.Filled.PictureAsPdf"
+               Disabled="@(_isExporting || _entriesInRange == 0)"
+               OnClick="ExportAsync">
+        @(_isExporting ? "Exporting…" : "Export to PDF")
+    </MudButton>
+
+    @if (_lastExportPath is not null)
+    {
+        <MudAlert Severity="Severity.Success" Class="mt-4">
+            <MudText Typo="Typo.body2">Saved to:</MudText>
+            <MudText Typo="Typo.caption" Class="d-block mb-2" Style="word-break: break-all;">
+                @_lastExportPath
+            </MudText>
+            <MudButton Variant="Variant.Text" Size="Size.Small"
+                       StartIcon="@Icons.Material.Filled.OpenInNew"
+                       OnClick="OpenLastExportAsync">Open it</MudButton>
+        </MudAlert>
+    }
+
+    @if (_error is not null)
+    {
+        <MudAlert Severity="Severity.Error" Class="mt-4">@_error</MudAlert>
+    }
+</MudPaper>
+
+@code {
+    private static readonly (string Label, int Days)[] Presets =
+    {
+        ("30 days", 30),
+        ("90 days", 90),
+        ("This year", 365)
+    };
+
+    private DateRange? _dateRange;
+    private int _entriesInRange;
+    private bool _isCounting = true;
+    private bool _isExporting;
+    private string? _lastExportPath;
+    private string? _error;
+
+    protected override async Task OnInitializedAsync()
+    {
+        _dateRange = new DateRange(DateTime.Today.AddDays(-29), DateTime.Today);
+        await CountAsync();
+    }
+
+    /// <summary>
+    /// Counts what would be exported, so the range can be judged before
+    /// committing to writing a file.
+    /// </summary>
+    private async Task CountAsync()
+    {
+        _isCounting = true;
+        _error = null;
+
+        try
+        {
+            var from = _dateRange?.Start ?? DateTime.Today;
+            var to = _dateRange?.End ?? DateTime.Today;
+            var entries = await EntryService.GetRangeAsync(from, to);
+            _entriesInRange = entries.Count;
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Failed to count entries for export");
+            _error = $"Could not read the journal: {ex.Message}";
+            _entriesInRange = 0;
+        }
+        finally
+        {
+            _isCounting = false;
+        }
+    }
+
+    private async Task OnRangeChangedAsync(DateRange? range)
+    {
+        _dateRange = range;
+        _lastExportPath = null;
+        await CountAsync();
+    }
+
+    private async Task ApplyPresetAsync(int days)
+    {
+        _dateRange = new DateRange(DateTime.Today.AddDays(-(days - 1)), DateTime.Today);
+        _lastExportPath = null;
+        await CountAsync();
+    }
+
+    /// <summary>Widens the range to cover the whole journal.</summary>
+    private async Task ApplyEverythingAsync()
+    {
+        _dateRange = new DateRange(new DateTime(2000, 1, 1), DateTime.Today);
+        _lastExportPath = null;
+        await CountAsync();
+    }
+
+    private async Task ExportAsync()
+    {
+        _isExporting = true;
+        _error = null;
+        _lastExportPath = null;
+
+        try
+        {
+            var from = _dateRange?.Start ?? DateTime.Today;
+            var to = _dateRange?.End ?? DateTime.Today;
+
+            var directory = ResolveExportDirectory();
+            Directory.CreateDirectory(directory);
+
+            var path = Path.Combine(directory, Exporter.SuggestFileName(from, to));
+
+            // Written to a stream the page owns, so a failure part-way leaves a
+            // partial file rather than a half-written one somewhere unexpected.
+            await using (var stream = File.Create(path))
+            {
+                await Exporter.ExportRangeAsync(from, to, stream);
+            }
+
+            _lastExportPath = path;
+            Snackbar.Add($"Exported {_entriesInRange} entries.", Severity.Success);
+        }
+        catch (UnauthorizedAccessException ex)
+        {
+            Logger.LogError(ex, "Export denied by the file system");
+            _error = "Could not write there. Check the folder is writable.";
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Export failed");
+            _error = $"Export failed: {ex.Message}";
+        }
+        finally
+        {
+            _isExporting = false;
+        }
+    }
+
+    /// <summary>
+    /// Picks somewhere sensible to write. Documents on desktop, where the user
+    /// can find the file; the app's own data directory on platforms that do not
+    /// grant access to a shared documents folder.
+    /// </summary>
+    private static string ResolveExportDirectory()
+    {
+        var documents = Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments);
+
+        return string.IsNullOrWhiteSpace(documents)
+            ? Path.Combine(FileSystem.AppDataDirectory, "Exports")
+            : Path.Combine(documents, "Reflect");
+    }
+
+    private async Task OpenLastExportAsync()
+    {
+        if (_lastExportPath is null)
+        {
+            return;
+        }
+
+        try
+        {
+            await Launcher.OpenAsync(new OpenFileRequest
+            {
+                File = new ReadOnlyFile(_lastExportPath)
+            });
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Could not open the exported file");
+            Snackbar.Add("Could not open it. The file is still saved at the path shown.", Severity.Warning);
+        }
+    }
+}

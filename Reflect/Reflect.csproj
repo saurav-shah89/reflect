@@ -72,6 +72,7 @@
         <PackageReference Include="Microsoft.AspNetCore.Components.WebView.Maui" Version="$(MauiVersion)" />
         <PackageReference Include="Microsoft.Extensions.Logging.Debug" Version="10.0.0" />
         <PackageReference Include="MudBlazor" Version="9.7.0" />
+        <PackageReference Include="QuestPDF" Version="2026.7.1" />
         <PackageReference Include="sqlite-net-pcl" Version="1.11.285" />
         <PackageReference Include="SQLitePCLRaw.bundle_green" Version="2.1.11" />
 
