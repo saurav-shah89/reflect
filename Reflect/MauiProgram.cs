@@ -57,5 +57,6 @@ public static class MauiProgram
 
 		services.AddScoped<IEntryService, EntryService>();
 		services.AddScoped<IAnalyticsService, AnalyticsService>();
+		services.AddScoped<ISettingsService, SettingsService>();
 	}
 }
