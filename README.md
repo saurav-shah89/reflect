@@ -2,7 +2,7 @@
 
 A journaling app for Windows. You write one entry a day in Markdown, pick how you felt,
 tag it, and the app works out streaks and some stats from that. Everything is stored
-locally in a SQLite file — nothing is uploaded anywhere.
+locally in a SQLite file - nothing is uploaded anywhere.
 
 Made with .NET MAUI Blazor Hybrid for CS6004NI Application Development, Coursework 1
 (Islington College / London Metropolitan University).
@@ -11,12 +11,12 @@ Made with .NET MAUI Blazor Hybrid for CS6004NI Application Development, Coursewo
 
 1. One journal entry per day, which you can create, edit and delete
 2. Markdown for writing, with a live preview next to the editor
-3. Mood tracking — one main mood plus up to two extra ones
+3. Mood tracking - one main mood plus up to two extra ones
 4. Tags, both the built-in list and any you type in yourself
 5. Calendar view to browse and jump to a day
 6. Timeline of all entries, paginated
 7. Search by title and content, filter by date, mood, tag or category
-8. Streaks — current, longest, and which days were missed
+8. Streaks - current, longest, and which days were missed
 9. Light and dark themes
 10. Dashboard with mood distribution, top tags, and word count over time
 11. Passphrase or PIN lock
@@ -32,7 +32,7 @@ Made with .NET MAUI Blazor Hybrid for CS6004NI Application Development, Coursewo
 - QuestPDF 2026.7.1 (Community licence) for the PDF export
 
 Windows is the target I built and tested against. The Android, iOS and Mac Catalyst
-targets are set up in the csproj but I haven't run them — iOS and Mac need a Mac to
+targets are set up in the csproj but I haven't run them - iOS and Mac need a Mac to
 build at all.
 
 ### Why the SQLite native library is pinned
@@ -76,9 +76,9 @@ because the WebView2 profile lives in the build folder and gets wiped when you r
 
 Two projects:
 
-- **Reflect.Core** — the models, services and database code. Targets plain `net10.0`, no
+- **Reflect.Core** - the models, services and database code. Targets plain `net10.0`, no
   MAUI reference at all.
-- **Reflect** — the MAUI app. Pages, layout, theme and the DI setup.
+- **Reflect** - the MAUI app. Pages, layout, theme and the DI setup.
 
 Splitting them meant `Reflect.Core` doesn't need MAUI. The one thing that did need it was
 asking for the app data folder, so the path is passed into `JournalDatabase` from
@@ -142,7 +142,7 @@ Seeded moods, five per category:
 | Neutral | Calm, Thoughtful, Curious, Nostalgic, Bored |
 | Negative | Sad, Angry, Stressed, Lonely, Anxious |
 
-To reset everything, close the app and delete `reflect.db3` — it gets rebuilt and reseeded
+To reset everything, close the app and delete `reflect.db3` - it gets rebuilt and reseeded
 next time.
 
 ## Security
@@ -151,7 +151,7 @@ You can lock the journal with a passphrase or PIN from Settings.
 
 The passphrase isn't stored. What's saved is a PBKDF2-HMAC-SHA256 hash, a random salt, and
 the iteration count used, so opening `reflect.db3` in a SQLite browser tells you nothing
-about it. I used 600,000 iterations, which is what OWASP recommends — it's about 90ms to
+about it. I used 600,000 iterations, which is what OWASP recommends - it's about 90ms to
 unlock. Comparison uses `CryptographicOperations.FixedTimeEquals` so how long it takes
 doesn't hint at how much of the hash was right.
 
@@ -166,7 +166,7 @@ unlocked, so someone can't just take the lock off a machine you left open.
 
 Worth being clear about what it doesn't do:
 
-- The database file itself isn't encrypted. The lock is on the app, not the file — anyone
+- The database file itself isn't encrypted. The lock is on the app, not the file - anyone
   with the file and a SQLite client can read it. Encrypting it would need something like
   SQLCipher, which is more than the spec asks for.
 - There's no way to recover a forgotten passphrase. Adding one would defeat the point.
@@ -190,7 +190,7 @@ passing `-f net10.0-windows...` to the whole solution. `Reflect.Core` targets pl
 **Changes not showing up.** MAUI can leave stale output behind. `dotnet clean` then
 rebuild, or delete `bin` and `obj`.
 
-**"You cannot write an entry for a future date."** Working as intended — an entry records
+**"You cannot write an entry for a future date."** Working as intended - an entry records
 a day that's actually happened.
 
 ## Coursework mapping

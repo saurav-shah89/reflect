@@ -1,26 +1,23 @@
 /*
- * Letterpress — the visual language from the DailyScribe v3 design.
+ * Styles for the Letterpress design (from DailyScribe v3).
  *
- * Colour and geometry come from the MudBlazor theme in Theme/LetterpressTheme.cs.
- * Everything that needs a selector lives here: the three typefaces and where
- * each is used, the hairline and heavy rules that carry the layout, the paper
- * grain, and the oversized folio numerals.
+ * The colours and sizes come from Theme/LetterpressTheme.cs. Anything that
+ * needs a CSS selector is here instead - the fonts, the rules, the paper grain
+ * and the big page numbers.
  *
- * The organising idea is a printed page. Nothing is rounded, nothing floats.
- * Structure comes from rules and the weight of the type, not from elevation or
- * fills, which is why almost every card here is a border-top rather than a box.
+ * The idea is that it should look like a printed page, so nothing is rounded
+ * and there are no shadows anywhere.
  */
 
 /*
- * Colour is taken from MudBlazor's palette variables rather than restated here,
- * so the theme object in Theme/LetterpressTheme.cs stays the single source of
- * truth and both modes follow it automatically. Only the few tones MudBlazor has
- * no equivalent for are given literal values, and those are switched by the
- * .lp-dark class that MainLayout puts on its own wrapper.
+ * These pull from MudBlazor's own palette variables instead of repeating the
+ * colours, so the theme file stays the only place they're written down and dark
+ * mode follows automatically. Only the few MudBlazor has no equivalent for get
+ * hardcoded, and those get swapped by .lp-dark.
  *
- * The wrapper is used rather than MudBlazor's .mud-theme-dark because the lock
- * screen renders outside MudLayout: relying on MudBlazor's class left the lock
- * screen with dark-mode text on light-mode paper.
+ * It uses its own .lp-dark class rather than MudBlazor's .mud-theme-dark
+ * because the lock screen renders outside MudLayout - using MudBlazor's class
+ * left the lock screen with dark text on light paper.
  */
 :root {
     --lp-display: 'Bodoni Moda', Didot, Georgia, serif;
@@ -54,18 +51,14 @@
     --lp-grain-blend: screen;
 }
 
-/*
- * Anything rendering outside MudLayout — the lock screen — has no ancestor
- * setting a text colour, so state it explicitly.
- */
+/* The lock screen renders outside MudLayout, so set the text colour here. */
 .lp-root {
     color: var(--lp-ink);
     min-height: 100vh;
 
     /*
-     * Paper, not the backdrop. In the design the backdrop is the desktop behind
-     * a floating window; here the app *is* the window, so its interior is the
-     * page. The backdrop survives only in the lock screen's vignette.
+     * Paper rather than the backdrop colour. In the original design the backdrop
+     * is the desktop behind a floating window, but here the app is the window.
      */
     background: var(--lp-paper);
 }
@@ -80,7 +73,7 @@ body,
     font-family: var(--lp-chrome);
 }
 
-/* Display serif for anything that behaves like a headline or a figure. */
+/* Serif for headings and numbers. */
 .lp-display,
 .mud-typography-h1,
 .mud-typography-h2,
@@ -101,10 +94,7 @@ body,
 .mud-typography-h5 { font-size: 1.7rem; }
 .mud-typography-h6 { font-size: 1.25rem; font-weight: 500; }
 
-/*
- * The small uppercase label that carries most of the interface. Wide tracking
- * is what makes it read as printed rather than as small body text.
- */
+/* The small uppercase label used all over the interface. */
 .lp-label {
     font-family: var(--lp-chrome);
     font-size: 0.6rem;
@@ -116,7 +106,7 @@ body,
 
 .lp-label-accent { color: var(--lp-accent); }
 
-/* A figure: large, set in the display serif, optically tight. */
+/* Big numbers on the dashboard and calendar. */
 .lp-figure {
     font-family: var(--lp-display);
     font-weight: 400;
@@ -124,7 +114,7 @@ body,
     letter-spacing: -0.02em;
 }
 
-/* Prose — entry bodies and previews only. */
+/* Prose - entry bodies and previews only. */
 .lp-prose,
 .markdown-preview {
     font-family: var(--lp-prose);
@@ -135,9 +125,9 @@ body,
 /* ------------------------------------------------------------- structure -- */
 
 /*
- * The heavy rule under a screen title, and the light rule that opens a block.
- * Borders rather than separate elements so they collapse correctly when a
- * section is empty.
+ * The thick rule under a page title and the lighter one that starts a block.
+ * Done as borders rather than separate elements so an empty section doesn't
+ * leave a stray line behind.
  */
 .lp-rule-heavy { border-bottom: 2px solid var(--lp-ink); }
 .lp-block { border-top: 2px solid var(--lp-ink); padding-top: 0.85rem; }
@@ -154,7 +144,7 @@ body,
     background: var(--lp-accent);
 }
 
-/* Cards are paper: square, hairline, unshadowed. */
+/* Square corners, thin border, no shadow. */
 .lp-card,
 .mud-paper-outlined {
     border-radius: 0 !important;
@@ -167,9 +157,8 @@ body,
 }
 
 /*
- * Oversized page numeral behind the editor, as on a printed folio. Purely
- * decorative, so it is inert to pointers and hidden from assistive technology
- * by the aria-hidden on the element itself.
+ * The big faded day number behind the editor. It's only decoration, so it
+ * ignores clicks and the element itself has aria-hidden on it.
  */
 .lp-folio {
     position: absolute;
@@ -189,8 +178,8 @@ body,
 .mud-theme-dark .lp-folio { opacity: 0.055; }
 
 /*
- * Paper grain. A single inline SVG turbulence tile, blended so it darkens light
- * paper and lifts dark paper rather than greying both.
+ * Paper grain - one inline SVG noise tile. The blend mode is different in dark
+ * mode, otherwise it just makes everything look grey.
  */
 .lp-grain::after {
     content: "";
@@ -220,7 +209,7 @@ body,
     background: transparent;
 }
 
-/* The ordinal that numbers each destination, as a running head would. */
+/* The 01, 02, 03 next to each nav item. */
 .lp-nav-num {
     display: inline-block;
     width: 20px;
@@ -233,9 +222,9 @@ body,
 /* --------------------------------------------------------------- editor --- */
 
 /*
- * Manuscript beside its marginalia. The meta column drops beneath the writing
- * area below the large breakpoint rather than squeezing both, because a cramped
- * writing column defeats the point of the screen.
+ * Writing area with the mood/tag column beside it. On smaller screens the side
+ * column moves underneath instead of both being squashed, since a narrow
+ * writing column is the last thing you want here.
  */
 .lp-editor-grid {
     display: grid;
@@ -248,7 +237,7 @@ body,
     .lp-editor-grid { grid-template-columns: minmax(0, 1fr) 280px; }
 }
 
-/* A single heavy rule down the left, as a printed page is bound. */
+/* Thick line down the left of the writing area. */
 .lp-manuscript {
     position: relative;
     z-index: 1;
@@ -266,7 +255,7 @@ body,
     .lp-editor-panes { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
 
-/* The title is set like a headline, not typed into a form field. */
+/* Borderless title box so it looks like a headline, not a form field. */
 .lp-title-input {
     width: 100%;
     border: none;
@@ -307,9 +296,9 @@ body,
 }
 
 /*
- * The 2° marker doubles as the secondary-mood control. The design used
- * right-click, which has no keyboard equivalent; a real button keeps the mark
- * while making the action reachable.
+ * The 2° marker is also the button for picking a secondary mood. The design
+ * had this on right-click, but there's no keyboard equivalent for that, so I
+ * made it a real button instead.
  */
 .lp-mood-second {
     padding: 6px 8px 6px 2px;
@@ -378,8 +367,8 @@ body,
 }
 
 /*
- * Proportion carried by tone, not colour: one ruled bar divided into solid ink,
- * half-tone and bare page.
+ * One bar split into solid, half tone and empty, so it shows the proportions
+ * without needing three colours.
  */
 .lp-tonebar {
     display: flex;
@@ -440,7 +429,7 @@ body,
 
 /* ---------------------------------------------------------------- marks --- */
 
-/* Mood swatch. Square, because circles read as a different design language. */
+/* Mood colour square. */
 .lp-swatch {
     display: inline-block;
     flex: 0 0 auto;
@@ -450,7 +439,7 @@ body,
 
 .lp-swatch-round { border-radius: 50%; }
 
-/* Calendar day carrying an entry: a rule of that day's mood colour beneath it. */
+/* The mood coloured line under a day that has an entry. */
 .lp-day-mark {
     display: block;
     height: 4px;

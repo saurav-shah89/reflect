@@ -13,7 +13,7 @@ namespace Reflect.Theme;
 // corners are square and there are no shadows anywhere.
 public static class LetterpressTheme
 {
-    // Light — warm paper stock under a deep press red.
+    // Light - warm paper stock under a deep press red.
     public const string LightBackdrop = "#C9C6BE";
     public const string LightPaper = "#FCFBF8";
     public const string LightPaper2 = "#F5F3EE";
@@ -26,7 +26,7 @@ public static class LetterpressTheme
     public const string LightAccent = "#A81E12";
     public const string LightAccentSoft = "#F6E7E4";
 
-    // Dark — the same press, inked on near-black.
+    // Dark - the same press, inked on near-black.
     public const string DarkBackdrop = "#080807";
     public const string DarkPaper = "#111110";
     public const string DarkPaper2 = "#181816";
