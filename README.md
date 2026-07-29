@@ -12,8 +12,8 @@ Built with .NET MAUI Blazor Hybrid for **CS6004NI Application Development**, Cou
 
 ## Project Status
 
-> **All twelve specified features are implemented.** This section is kept honest and current
-> so nobody is misled about what runs today; anything not yet done is named as such.
+> **All twelve specified features are implemented and covered by 100 passing tests.** This
+> section is kept honest and current so nobody is misled about what runs today.
 
 | Area | Status |
 | --- | --- |
@@ -30,7 +30,7 @@ Built with .NET MAUI Blazor Hybrid for **CS6004NI Application Development**, Cou
 | Journal lock (passphrase or PIN) | Complete |
 | PDF export by date range | Complete |
 | Theme persistence | Complete |
-| Automated test project | None yet — see [Testing](#testing) |
+| Automated test project | 100 tests, all passing — see [Testing](#testing) |
 
 What this means practically: you can write a Markdown entry for today or any past day, record
 moods, tag and categorise it, browse a month at a glance in the calendar, page through
@@ -38,8 +38,7 @@ everything you have written, search or filter by text, date range, mood, tag and
 streaks and analytics on the dashboard, protect the journal with a passphrase or PIN, choose a
 theme that persists, and export any date range to PDF.
 
-What remains is not features but engineering polish — chiefly a committed test project. See
-[Roadmap](#roadmap).
+Everything on the roadmap is done. See [Testing](#testing) for what the suite covers.
 
 ---
 
@@ -219,6 +218,8 @@ fixed reference data — 15 moods, 31 tags and 6 categories.
 
 | Command | Description |
 | --- | --- |
+| `dotnet test` | Run the test suite (100 tests) |
+| `dotnet build Reflect.Core/Reflect.Core.csproj` | Build the domain library alone |
 | `dotnet restore Reflect/Reflect.csproj` | Restore NuGet packages |
 | `dotnet build Reflect/Reflect.csproj -f net10.0-windows10.0.19041.0` | Build the Windows target |
 | `dotnet build Reflect/Reflect.csproj -f net10.0-android` | Build the Android target |
@@ -233,28 +234,40 @@ fixed reference data — 15 moods, 31 tags and 6 categories.
 
 ## Architecture
 
+### Projects
+
+| Project | Target | Holds |
+| --- | --- | --- |
+| `Reflect.Core` | `net10.0` | Models, persistence and business logic. No MAUI dependency |
+| `Reflect` | `net10.0-android/ios/maccatalyst/windows` | MAUI shell, Blazor components, DI wiring |
+| `Reflect.Core.Tests` | `net10.0` | xUnit suite over `Reflect.Core` |
+
+The split exists so the domain can be tested. A test project cannot reference a MAUI project,
+because those target platform frameworks; keeping the domain on plain `net10.0` makes it
+directly referenceable. See [Testing](#testing).
+
 ### Layering
 
-Reflect is organised in three layers with dependencies pointing inward. Razor components
-depend on service interfaces; service implementations depend on the database abstraction;
-nothing depends on a concrete SQLite connection except `JournalDatabase` itself.
+Dependencies point inward. Razor components depend on service interfaces; service
+implementations depend on the database abstraction; nothing depends on a concrete SQLite
+connection except `JournalDatabase` itself.
 
 ```
-Components (Razor / MudBlazor)      presentation
-        │  depends on
-        ▼
-Services.Interfaces  ←  Services    business logic
-        │  depends on
-        ▼
-Data.IJournalDatabase  ←  Data      persistence
-        │
-        ▼
-    SQLite file
+Reflect            Components (Razor / MudBlazor)      presentation
+                           │  depends on
+                           ▼
+Reflect.Core       Services.Interfaces  ←  Services    business logic
+                           │  depends on
+                           ▼
+Reflect.Core       Data.IJournalDatabase  ←  Data      persistence
+                           │
+                           ▼
+                       SQLite file
 ```
 
 This satisfies the specification's code-modularity criteria — separation of concerns, single
-responsibility, abstraction and dependency injection — and means the storage mechanism can be
-swapped (for example for an in-memory database in tests) without touching business logic.
+responsibility, abstraction and dependency injection — and the storage mechanism can be
+swapped without touching business logic.
 
 ### Directory structure
 
@@ -262,46 +275,47 @@ swapped (for example for an in-memory database in tests) without touching busine
 .
 ├── Reflect.sln                     Solution file
 ├── README.md                       This file
-└── Reflect/
-    ├── Reflect.csproj              Project file, target frameworks, packages
-    ├── MauiProgram.cs              App composition root and DI registration
+│
+├── Reflect.Core/                   Domain library, plain net10.0
+│   ├── Models/                     Domain entities and value types
+│   │   ├── JournalEntry.cs         One entry per day
+│   │   ├── Mood.cs  Tag.cs  Category.cs  EntryTag.cs
+│   │   ├── AppSettings.cs          Theme and credential hash
+│   │   ├── EntryQuery.cs           Search and filter criteria
+│   │   ├── PagedResult.cs          One page of results plus totals
+│   │   └── Analytics/              Dashboard result types
+│   ├── Data/
+│   │   ├── IJournalDatabase.cs     Connection abstraction
+│   │   ├── JournalDatabase.cs      Connection, schema creation, seeding
+│   │   └── SeedData.cs             The specification's fixed reference lists
+│   └── Services/
+│       ├── Interfaces/             One interface per service
+│       ├── EntryService.cs         Entry CRUD, search, paging
+│       ├── AnalyticsService.cs     Streaks and dashboard aggregates
+│       ├── ReferenceDataService.cs Moods, tags, categories
+│       ├── SettingsService.cs      Preferences and the lock credential
+│       ├── MarkdownRenderer.cs     Markdig wrapper, raw HTML disabled
+│       ├── PdfJournalExporter.cs   QuestPDF export
+│       └── DuplicateEntryDateException.cs
+│
+├── Reflect.Core.Tests/             xUnit suite, 100 tests
+│   ├── TestDatabaseFixture.cs      Temporary-file journal used by every test
+│   └── *Tests.cs                   One class per area
+│
+└── Reflect/                        MAUI Blazor Hybrid app
+    ├── Reflect.csproj              Target frameworks, packages
+    ├── MauiProgram.cs              Composition root and DI registration
     ├── App.xaml(.cs)               MAUI application shell
     ├── MainPage.xaml(.cs)          Hosts the BlazorWebView
-    │
-    ├── Models/                     Domain entities and value types
-    │   ├── JournalEntry.cs         One entry per day
-    │   ├── Mood.cs                 A selectable mood
-    │   ├── MoodCategory.cs         Positive / Neutral / Negative
-    │   ├── Tag.cs                  Pre-built or custom label
-    │   ├── Category.cs             Single grouping per entry
-    │   ├── EntryTag.cs             Entry-to-tag join row
-    │   ├── AppSettings.cs          Theme and credential hash
-    │   ├── EntryQuery.cs           Search and filter criteria
-    │   └── PagedResult.cs          One page of results plus totals
-    │
-    ├── Data/                       Persistence
-    │   ├── IJournalDatabase.cs     Connection abstraction
-    │   ├── JournalDatabase.cs      Connection, schema creation, seeding
-    │   └── SeedData.cs             The specification's fixed reference lists
-    │
-    ├── Services/                   Business logic
-    │   ├── Interfaces/
-    │   │   └── IEntryService.cs    Entry CRUD and querying contract
-    │   └── DuplicateEntryDateException.cs
-    │
-    ├── Components/                 Blazor UI
+    ├── Services/AppLockState.cs    Session lock state (shell concern, not domain)
+    ├── Components/
     │   ├── Routes.razor            Router
     │   ├── _Imports.razor          Global usings for components
-    │   ├── Layout/                 Shell and navigation
-    │   └── Pages/                  Routable pages
-    │
+    │   ├── Layout/                 Shell, navigation, lock screen
+    │   └── Pages/                  Today, Write, Calendar, Journal, Dashboard, Export, Settings
     ├── Platforms/                  Per-platform entry points and manifests
-    │   ├── Android/  iOS/  MacCatalyst/  Windows/
-    │
     ├── Resources/                  App icon, splash, fonts, raw assets
     └── wwwroot/                    Static web assets served to the WebView
-        ├── index.html
-        └── app.css
 ```
 
 ### How MAUI Blazor Hybrid works here
@@ -484,58 +498,51 @@ unlocked, so an unattended machine cannot be used to lock the owner out.
 
 ## Testing
 
-**There is no test project in the repository yet.** This section documents the intended
-approach rather than committed tests, so the gap is not mistaken for standing coverage.
-
-The service layer has, however, been verified against real SQLite files using throwaway
-harnesses that linked the actual service sources:
-
-- **`EntryService` — 48 checks.** Insert, update, the transactional tag rewrite, the
-  one-entry-per-day constraint, every search filter, paging edges and cascade-on-delete.
-- **`AnalyticsService` — 47 checks.** Empty journals, streaks broken and at risk, runs
-  spanning a month boundary, percentage totals, uncategorised grouping, all three trend
-  granularities, reversed bounds, and empty ranges producing zeroes rather than NaN.
-- **`SettingsService` — 41 checks.** Plaintext never reaching storage, per-install salts,
-  wrong passphrases failing to disable the lock, corrupt credential material handled, and
-  verification timing inside its intended window.
-- **`PdfJournalExporter` — 13 checks.** Valid PDF structure, reversed and empty ranges,
-  non-file streams, and null rejection.
-
-All passed in full. Those harnesses live outside the repository, so they are point-in-time
-results rather than a suite that runs on every build. Turning them into a committed test
-project is item 12 on the [Roadmap](#roadmap).
-
-The architecture is already set up to make testing straightforward: services depend on
-`IJournalDatabase`, so a test can supply a connection to an in-memory SQLite database
-(`":memory:"`) and exercise business logic with no file system involvement.
-
-To add a test project:
-
-```bash
-dotnet new xunit -n Reflect.Tests -o Reflect.Tests
-dotnet sln Reflect.sln add Reflect.Tests/Reflect.Tests.csproj
-dotnet add Reflect.Tests/Reflect.Tests.csproj reference Reflect/Reflect.csproj
-```
-
-Note that referencing a MAUI project from a plain test project requires the test project to
-target a compatible framework, or the model and service layers to be extracted into a shared
-class library. The latter is cleaner and is on the [Roadmap](#roadmap).
-
-Behaviour worth covering first:
-
-- Saving two entries on the same date raises `DuplicateEntryDateException`
-- `EntryDate` is normalised to midnight regardless of the time component supplied
-- `CreatedAt` survives an update while `UpdatedAt` advances
-- Seeding twice does not duplicate reference rows
-- Streak calculation across gaps, month boundaries and leap years
-- Word count on Markdown containing headings, lists and links
-- A correct passphrase verifies and an incorrect one does not
-
-Run tests with:
+`Reflect.Core.Tests` holds **100 tests**, all passing. Run them with:
 
 ```bash
 dotnet test
 ```
+
+Expect roughly 13 seconds.
+
+### Why a separate library exists
+
+Tests could not reference the app project directly: MAUI projects target platform frameworks
+(`net10.0-android`, `net10.0-ios`, …), and a plain test project cannot reference those. The
+domain therefore lives in **`Reflect.Core`**, which targets plain `net10.0`.
+
+That split cost almost nothing, because the layering already held — the entire domain had
+exactly one dependency on MAUI, `JournalDatabase` asking `FileSystem` for the app-data
+directory. Injecting that path removed it, and the app now supplies the platform path at
+registration.
+
+### What the tests cover
+
+| Class | Tests | Focus |
+| --- | --- | --- |
+| `EntryServiceTests` | 18 | CRUD, date normalisation, the one-entry-per-day rule, mood slot rules, tag replacement, cascade on delete |
+| `EntrySearchTests` | 16 | Every filter, filter combination, paging edges, LIKE-wildcard escaping |
+| `AnalyticsServiceTests` | 18 | Streaks including at-risk and month-boundary runs, mood distribution, tag and category breakdowns, missed days, trend granularity |
+| `SettingsServiceTests` | 23 | Credential storage, per-install salts, lock removal, corrupt material, theme normalisation, verification cost |
+| `ReferenceDataAndSeedingTests` | 14 | Schema creation, the specification's exact mood lists, re-seeding, case-insensitive tag resolution |
+| `ExportAndRenderingTests` | 11 | Markdown rendering, raw-HTML suppression, PDF structure, empty and reversed ranges |
+
+### How they run
+
+Each test builds a real `JournalDatabase` over a temporary file and disposes it afterwards —
+not a stand-in — so schema creation and reference-data seeding are exercised by every test
+that touches storage. A file rather than `:memory:` because sqlite-net opens its own
+connections internally, and an in-memory database would not be shared between them.
+
+Several tests assert properties rather than outputs, because that is where the interesting
+failures hide:
+
+- The passphrase never reaches storage, in any field.
+- The same passphrase on two installs produces different salts and hashes.
+- `%` and `_` in a search term match literally rather than matching every row.
+- Verification still costs measurable time — a collapse toward zero is how a lost PBKDF2 work
+  factor would show up, and nothing else would catch it.
 
 ---
 
@@ -625,6 +632,18 @@ version. Add `-p:UseMonoRuntime=false` to the command.
 Expected on Windows — those targets need a Mac. Always pass an explicit `-f` for the platform
 you are building rather than building all targets at once.
 
+### `NETSDK1005: Assets file doesn't have a target for net10.0-windows...`
+
+Caused by passing `-f net10.0-windows10.0.19041.0` to a solution-wide build. The flag applies
+to every project, and `Reflect.Core` and `Reflect.Core.Tests` target plain `net10.0`. Build
+each project separately, or `dotnet test` for the suite:
+
+```bash
+dotnet build Reflect.Core/Reflect.Core.csproj
+dotnet build Reflect/Reflect.csproj -f net10.0-windows10.0.19041.0
+dotnet test
+```
+
 ### `NU1903` high-severity vulnerability warnings on restore
 
 The native SQLite library pin has been lost. Confirm `Reflect.csproj` still contains the
@@ -680,11 +699,10 @@ Done:
 10. ~~**PDF export**~~ — date-range export via QuestPDF.
 11. ~~**Theme persistence**~~ — the choice is stored in `AppSettings.Theme` and survives restarts.
 
-Remaining:
+12. ~~**Extract a shared class library**~~ — `Reflect.Core` targets plain `net10.0`, and
+    `Reflect.Core.Tests` covers it with 100 tests that run on every build.
 
-12. **Extract a shared class library** so models and services can be unit tested without the
-    MAUI target frameworks, then add the test project. The assertions already exist as
-    throwaway harnesses — see [Testing](#testing).
+Nothing outstanding.
 
 ---
 
@@ -708,8 +726,8 @@ Where each marking-scheme item is or will be satisfied. Kept current as work lan
 | Export journals | 5 | `Services/PdfJournalExporter.cs`, `Components/Pages/Export.razor` | Done |
 | Code readability | 5 | Throughout — XML doc comments, consistent naming | Ongoing |
 | Code efficiency | 5 | Indexed columns, stored `WordCount`, cached reference data, paged queries | Ongoing |
-| Code modularity | 5 | Interface-per-service, DI, layered structure | Ongoing |
-| Error handling | 5 | `DuplicateEntryDateException`, validation at both layers, logging, UI fallbacks | Ongoing |
+| Code modularity | 5 | Interface-per-service, DI, domain split into `Reflect.Core` | Ongoing |
+| Error handling | 5 | `DuplicateEntryDateException`, validation at both layers, logging, UI fallbacks, 100 tests | Ongoing |
 | Version control | 5 | Conventional Commits, private repository | Ongoing |
 | User experience | 5 | MudBlazor, responsive grid, live preview, confirmation on delete | Ongoing |
 
