@@ -25,7 +25,8 @@ else
                   Immediate="true"
                   DebounceInterval="300"
                   Clearable="true"
-                  Class="mb-3" />
+                  Class="mb-3"
+                  Style="border-radius: 0;" />
 
     <MudExpansionPanels Elevation="0" Class="mb-4">
         <MudExpansionPanel Expanded="_filtersExpanded" ExpandedChanged="@(v => _filtersExpanded = v)">
@@ -109,7 +110,7 @@ else
     </MudExpansionPanels>
 
     <div class="d-flex align-center justify-space-between mb-2" style="width: 100%;">
-        <MudText Typo="Typo.body2">
+        <span class="lp-label">
             @if (_isSearching)
             {
                 <span>Searching…</span>
@@ -118,7 +119,7 @@ else
             {
                 <span>@_result.TotalCount result@(_result.TotalCount == 1 ? "" : "s")</span>
             }
-        </MudText>
+        </span>
 
         <MudSelect T="int" Value="_pageSize" ValueChanged="OnPageSizeChanged"
                    Label="Per page" Dense="true" Variant="Variant.Text" Style="max-width: 110px;">
@@ -147,9 +148,11 @@ else
         {
             <MudCard Outlined="true" Class="mb-3 entry-card" @onclick="@(() => OpenDate(entry.EntryDate))">
                 <MudCardContent>
-                    <div class="d-flex align-center justify-space-between">
+                    <div class="d-flex align-baseline justify-space-between" style="gap: 12px;">
                         <MudText Typo="Typo.h6">@entry.Title</MudText>
-                        <MudText Typo="Typo.caption">@entry.EntryDate.ToString("ddd d MMM yyyy")</MudText>
+                        <span class="lp-label" style="white-space: nowrap;">
+                            @entry.EntryDate.ToString("ddd d MMM yyyy")
+                        </span>
                     </div>
 
                     <div class="d-flex flex-wrap align-center gap-1 my-2">
@@ -168,15 +171,18 @@ else
                                 @MoodName(secondary)
                             </span>
                         }
+                        @* The category sits in the same rank of chips as the moods, so it
+                           is set the same way rather than as a filled component chip. *@
                         @if (entry.CategoryId is int categoryId)
                         {
-                            <MudChip T="string" Size="Size.Small" Variant="Variant.Text"
-                                     Icon="@Icons.Material.Filled.Folder" Text="@CategoryName(categoryId)" />
+                            <span class="lp-label d-inline-flex align-center" style="@CategoryChipStyle">
+                                @CategoryName(categoryId)
+                            </span>
                         }
                     </div>
 
                     <MudText Typo="Typo.body2" Class="entry-snippet">@Snippet(entry.Content)</MudText>
-                    <MudText Typo="Typo.caption" Class="mt-2 d-block">@entry.WordCount words</MudText>
+                    <div class="lp-label mt-2">@entry.WordCount words</div>
                 </MudCardContent>
             </MudCard>
         }
@@ -356,6 +362,10 @@ else
             ? $"background:{colour}22;border:1px solid {colour};padding:3px 10px;color:var(--lp-ink);"
             : $"border:1px solid {colour}66;padding:3px 10px;color:var(--lp-muted);";
     }
+
+    /// <summary>Neutral rule, so the mood colours stay the only hue in the row.</summary>
+    private const string CategoryChipStyle =
+        "border:1px solid var(--lp-rule-strong);padding:3px 10px;color:var(--lp-muted);";
 
     private string CategoryName(int categoryId) =>
         _categories.FirstOrDefault(c => c.Id == categoryId)?.Name ?? "Uncategorised";
