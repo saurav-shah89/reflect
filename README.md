@@ -12,8 +12,8 @@ Built with .NET MAUI Blazor Hybrid for **CS6004NI Application Development**, Cou
 
 ## Project Status
 
-> **All twelve specified features are implemented and covered by 100 passing tests.** This
-> section is kept honest and current so nobody is misled about what runs today.
+> **All twelve specified features are implemented.** This section is kept honest and current
+> so nobody is misled about what runs today.
 
 | Area | Status |
 | --- | --- |
@@ -30,7 +30,6 @@ Built with .NET MAUI Blazor Hybrid for **CS6004NI Application Development**, Cou
 | Journal lock (passphrase or PIN) | Complete |
 | PDF export by date range | Complete |
 | Theme persistence | Complete |
-| Automated test project | 100 tests, all passing — see [Testing](#testing) |
 
 What this means practically: you can write a Markdown entry for today or any past day, record
 moods, tag and categorise it, browse a month at a glance in the calendar, page through
@@ -38,7 +37,7 @@ everything you have written, search or filter by text, date range, mood, tag and
 streaks and analytics on the dashboard, protect the journal with a passphrase or PIN, choose a
 theme that persists, and export any date range to PDF.
 
-Everything on the roadmap is done. See [Testing](#testing) for what the suite covers.
+Everything on the roadmap is done.
 
 ---
 
@@ -53,7 +52,6 @@ Everything on the roadmap is done. See [Testing](#testing) for what the suite co
 - [Database Schema](#database-schema)
 - [Configuration](#configuration)
 - [Security](#security)
-- [Testing](#testing)
 - [Building and Publishing](#building-and-publishing)
 - [Troubleshooting](#troubleshooting)
 - [Roadmap](#roadmap)
@@ -218,7 +216,6 @@ fixed reference data — 15 moods, 31 tags and 6 categories.
 
 | Command | Description |
 | --- | --- |
-| `dotnet test` | Run the test suite (100 tests) |
 | `dotnet build Reflect.Core/Reflect.Core.csproj` | Build the domain library alone |
 | `dotnet restore Reflect/Reflect.csproj` | Restore NuGet packages |
 | `dotnet build Reflect/Reflect.csproj -f net10.0-windows10.0.19041.0` | Build the Windows target |
@@ -240,11 +237,10 @@ fixed reference data — 15 moods, 31 tags and 6 categories.
 | --- | --- | --- |
 | `Reflect.Core` | `net10.0` | Models, persistence and business logic. No MAUI dependency |
 | `Reflect` | `net10.0-android/ios/maccatalyst/windows` | MAUI shell, Blazor components, DI wiring |
-| `Reflect.Core.Tests` | `net10.0` | xUnit suite over `Reflect.Core` |
 
-The split exists so the domain can be tested. A test project cannot reference a MAUI project,
-because those target platform frameworks; keeping the domain on plain `net10.0` makes it
-directly referenceable. See [Testing](#testing).
+The split keeps the domain free of platform dependencies. `Reflect.Core` targets plain
+`net10.0` and knows nothing about MAUI — the app supplies the one piece of platform knowledge
+it needs, the database file path, at registration.
 
 ### Layering
 
@@ -297,10 +293,7 @@ swapped without touching business logic.
 │       ├── MarkdownRenderer.cs     Markdig wrapper, raw HTML disabled
 │       ├── PdfJournalExporter.cs   QuestPDF export
 │       └── DuplicateEntryDateException.cs
-│
-├── Reflect.Core.Tests/             xUnit suite, 100 tests
-│   ├── TestDatabaseFixture.cs      Temporary-file journal used by every test
-│   └── *Tests.cs                   One class per area
+
 │
 └── Reflect/                        MAUI Blazor Hybrid app
     ├── Reflect.csproj              Target frameworks, packages
@@ -496,56 +489,6 @@ unlocked, so an unattended machine cannot be used to lock the owner out.
 
 ---
 
-## Testing
-
-`Reflect.Core.Tests` holds **100 tests**, all passing. Run them with:
-
-```bash
-dotnet test
-```
-
-Expect roughly 13 seconds.
-
-### Why a separate library exists
-
-Tests could not reference the app project directly: MAUI projects target platform frameworks
-(`net10.0-android`, `net10.0-ios`, …), and a plain test project cannot reference those. The
-domain therefore lives in **`Reflect.Core`**, which targets plain `net10.0`.
-
-That split cost almost nothing, because the layering already held — the entire domain had
-exactly one dependency on MAUI, `JournalDatabase` asking `FileSystem` for the app-data
-directory. Injecting that path removed it, and the app now supplies the platform path at
-registration.
-
-### What the tests cover
-
-| Class | Tests | Focus |
-| --- | --- | --- |
-| `EntryServiceTests` | 18 | CRUD, date normalisation, the one-entry-per-day rule, mood slot rules, tag replacement, cascade on delete |
-| `EntrySearchTests` | 16 | Every filter, filter combination, paging edges, LIKE-wildcard escaping |
-| `AnalyticsServiceTests` | 18 | Streaks including at-risk and month-boundary runs, mood distribution, tag and category breakdowns, missed days, trend granularity |
-| `SettingsServiceTests` | 23 | Credential storage, per-install salts, lock removal, corrupt material, theme normalisation, verification cost |
-| `ReferenceDataAndSeedingTests` | 14 | Schema creation, the specification's exact mood lists, re-seeding, case-insensitive tag resolution |
-| `ExportAndRenderingTests` | 11 | Markdown rendering, raw-HTML suppression, PDF structure, empty and reversed ranges |
-
-### How they run
-
-Each test builds a real `JournalDatabase` over a temporary file and disposes it afterwards —
-not a stand-in — so schema creation and reference-data seeding are exercised by every test
-that touches storage. A file rather than `:memory:` because sqlite-net opens its own
-connections internally, and an in-memory database would not be shared between them.
-
-Several tests assert properties rather than outputs, because that is where the interesting
-failures hide:
-
-- The passphrase never reaches storage, in any field.
-- The same passphrase on two installs produces different salts and hashes.
-- `%` and `_` in a search term match literally rather than matching every row.
-- Verification still costs measurable time — a collapse toward zero is how a lost PBKDF2 work
-  factor would show up, and nothing else would catch it.
-
----
-
 ## Building and Publishing
 
 MAUI applications are packaged per platform rather than deployed to a server.
@@ -635,13 +578,11 @@ you are building rather than building all targets at once.
 ### `NETSDK1005: Assets file doesn't have a target for net10.0-windows...`
 
 Caused by passing `-f net10.0-windows10.0.19041.0` to a solution-wide build. The flag applies
-to every project, and `Reflect.Core` and `Reflect.Core.Tests` target plain `net10.0`. Build
-each project separately, or `dotnet test` for the suite:
+to every project, and `Reflect.Core` targets plain `net10.0`. Build each project separately:
 
 ```bash
 dotnet build Reflect.Core/Reflect.Core.csproj
 dotnet build Reflect/Reflect.csproj -f net10.0-windows10.0.19041.0
-dotnet test
 ```
 
 ### `NU1903` high-severity vulnerability warnings on restore
@@ -699,8 +640,8 @@ Done:
 10. ~~**PDF export**~~ — date-range export via QuestPDF.
 11. ~~**Theme persistence**~~ — the choice is stored in `AppSettings.Theme` and survives restarts.
 
-12. ~~**Extract a shared class library**~~ — `Reflect.Core` targets plain `net10.0`, and
-    `Reflect.Core.Tests` covers it with 100 tests that run on every build.
+12. ~~**Extract a shared class library**~~ — `Reflect.Core` targets plain `net10.0`, holding
+    the domain free of any MAUI dependency.
 
 Nothing outstanding.
 
@@ -727,7 +668,7 @@ Where each marking-scheme item is or will be satisfied. Kept current as work lan
 | Code readability | 5 | Throughout — XML doc comments, consistent naming | Ongoing |
 | Code efficiency | 5 | Indexed columns, stored `WordCount`, cached reference data, paged queries | Ongoing |
 | Code modularity | 5 | Interface-per-service, DI, domain split into `Reflect.Core` | Ongoing |
-| Error handling | 5 | `DuplicateEntryDateException`, validation at both layers, logging, UI fallbacks, 100 tests | Ongoing |
+| Error handling | 5 | `DuplicateEntryDateException`, validation at both layers, logging, UI fallbacks | Ongoing |
 | Version control | 5 | Conventional Commits, private repository | Ongoing |
 | User experience | 5 | MudBlazor, responsive grid, live preview, confirmation on delete | Ongoing |
 
