@@ -12,9 +12,8 @@ Built with .NET MAUI Blazor Hybrid for **CS6004NI Application Development**, Cou
 
 ## Project Status
 
-> **In development.** Writing, browsing and analytics work end to end; the security and export
-> features are not built yet. This section is kept honest and current so nobody is misled
-> about what runs today.
+> **All twelve specified features are implemented.** This section is kept honest and current
+> so nobody is misled about what runs today; anything not yet done is named as such.
 
 | Area | Status |
 | --- | --- |
@@ -28,14 +27,19 @@ Built with .NET MAUI Blazor Hybrid for **CS6004NI Application Development**, Cou
 | Calendar month view | Complete |
 | Paginated journal with search and filters | Complete |
 | Streaks and dashboard analytics | Complete |
-| Security (PIN/passphrase), PDF export, theme persistence | Not started |
+| Journal lock (passphrase or PIN) | Complete |
+| PDF export by date range | Complete |
+| Theme persistence | Complete |
 | Automated test project | None yet — see [Testing](#testing) |
 
 What this means practically: you can write a Markdown entry for today or any past day, record
 moods, tag and categorise it, browse a month at a glance in the calendar, page through
-everything you have written, search or filter by text, date range, mood, tag and category, and
-see streaks, mood distribution, tag usage and word-count trends on the dashboard. What you
-cannot yet do is lock the journal or export to PDF. See [Roadmap](#roadmap).
+everything you have written, search or filter by text, date range, mood, tag and category, see
+streaks and analytics on the dashboard, protect the journal with a passphrase or PIN, choose a
+theme that persists, and export any date range to PDF.
+
+What remains is not features but engineering polish — chiefly a committed test project. See
+[Roadmap](#roadmap).
 
 ---
 
@@ -49,6 +53,7 @@ cannot yet do is lock the journal or export to PDF. See [Roadmap](#roadmap).
 - [Architecture](#architecture)
 - [Database Schema](#database-schema)
 - [Configuration](#configuration)
+- [Security](#security)
 - [Testing](#testing)
 - [Building and Publishing](#building-and-publishing)
 - [Troubleshooting](#troubleshooting)
@@ -73,10 +78,10 @@ marked done is a target, not a description of current behaviour.
 | 6 | Paginated journal view | Timeline list, page by page | Done |
 | 7 | Search and filter | Search title and content; filter by date range, moods, tags or category | Done |
 | 8 | Streak tracking | Current streak, longest streak and missed days | Done |
-| 9 | Theme customisation | Light and dark themes | Toggle works, not yet persisted |
+| 9 | Theme customisation | Light and dark themes | Done |
 | 10 | Dashboard analytics | Mood distribution, most frequent mood, most used tags, tag breakdown, word-count trends | Done |
-| 11 | Security and privacy | Password or PIN protection for the journal | Schema ready, flow planned |
-| 12 | Export | Export a date range of entries to PDF | Planned |
+| 11 | Security and privacy | Password or PIN protection for the journal | Done |
+| 12 | Export | Export a date range of entries to PDF | Done |
 
 ### Design decisions already made
 
@@ -105,6 +110,7 @@ marked done is a target, not a description of current behaviour.
 | SQLite native provider | `SQLitePCLRaw.bundle_green` | 2.1.11 |
 | SQLite native library | `SQLitePCLRaw.lib.e_sqlite3` | 2.1.12 (pinned — see note) |
 | Markdown rendering | Markdig | 1.3.2 |
+| PDF generation | QuestPDF (Community licence) | 2026.7.1 |
 | Logging | `Microsoft.Extensions.Logging` | 10.0.0 |
 
 ### Target platforms
@@ -437,6 +443,45 @@ Runtime constants worth knowing:
 
 ---
 
+## Security
+
+The journal can be locked with a passphrase or PIN, set from the Settings page.
+
+**The passphrase is never stored.** What is persisted is a PBKDF2-HMAC-SHA256 hash, a random
+per-install salt, and the iteration count used to produce it — so reading `reflect.db3`
+reveals nothing about the credential, and the same passphrase on two installs produces
+different hashes.
+
+| Property | Choice | Why |
+| --- | --- | --- |
+| Algorithm | PBKDF2-HMAC-SHA256 | Available in the base class library; no extra dependency |
+| Work factor | 600,000 iterations | OWASP guidance; measured at ~90ms per verification |
+| Salt | 32 random bytes per install | Defeats precomputed tables and cross-install comparison |
+| Comparison | `CryptographicOperations.FixedTimeEquals` | Verification time does not leak how much matched |
+| Iteration count | Stored alongside the hash | The work factor can be raised later without invalidating existing passphrases |
+
+When locked, the lock screen **replaces the entire layout** rather than overlaying it, so no
+navigation and no entry content is rendered behind it. Nothing renders at all until the lock
+state is known, so a locked journal cannot flash its contents on the way to the prompt. If the
+settings row cannot be read at startup the app treats itself as locked — failing open would
+expose the journal, failing closed costs only a prompt.
+
+Changing or removing the passphrase requires the current one even when the session is already
+unlocked, so an unattended machine cannot be used to lock the owner out.
+
+### What this does not do
+
+- **The database itself is not encrypted.** The lock gates the application, not the file.
+  Anyone with access to `reflect.db3` and a SQLite client can read entries directly. Encrypting
+  at rest would need SQLCipher or equivalent, which is beyond the specification's requirement
+  for "password or PIN protection".
+- **There is no recovery.** A forgotten passphrase cannot be reset, by design — a reset path
+  reachable without the credential would defeat the lock.
+- **There is no attempt throttling.** Failed attempts are counted and shown but not rate
+  limited; the 600,000-iteration work factor is what makes bulk guessing expensive.
+
+---
+
 ## Testing
 
 **There is no test project in the repository yet.** This section documents the intended
@@ -450,8 +495,13 @@ harnesses that linked the actual service sources:
 - **`AnalyticsService` — 47 checks.** Empty journals, streaks broken and at risk, runs
   spanning a month boundary, percentage totals, uncategorised grouping, all three trend
   granularities, reversed bounds, and empty ranges producing zeroes rather than NaN.
+- **`SettingsService` — 41 checks.** Plaintext never reaching storage, per-install salts,
+  wrong passphrases failing to disable the lock, corrupt credential material handled, and
+  verification timing inside its intended window.
+- **`PdfJournalExporter` — 13 checks.** Valid PDF structure, reversed and empty ranges,
+  non-file streams, and null rejection.
 
-Both passed in full. Those harnesses live outside the repository, so they are point-in-time
+All passed in full. Those harnesses live outside the repository, so they are point-in-time
 results rather than a suite that runs on every build. Turning them into a committed test
 project is item 12 on the [Roadmap](#roadmap).
 
@@ -626,13 +676,15 @@ Done:
 8. ~~**Analytics dashboard**~~ — mood distribution, frequent moods, tag usage, category
    breakdown and word-count trends, date-range filterable.
 
-Remaining, ordered roughly by dependency:
+9. ~~**Security**~~ — PBKDF2 passphrase set-up and an unlock screen that replaces the whole app.
+10. ~~**PDF export**~~ — date-range export via QuestPDF.
+11. ~~**Theme persistence**~~ — the choice is stored in `AppSettings.Theme` and survives restarts.
 
-9. **Security** — PBKDF2 passphrase set-up and unlock screen.
-10. **PDF export** — date-range export.
-11. **Theme persistence** — the toggle works; persist the choice to `AppSettings.Theme`.
+Remaining:
+
 12. **Extract a shared class library** so models and services can be unit tested without the
-    MAUI target frameworks, then add the test project.
+    MAUI target frameworks, then add the test project. The assertions already exist as
+    throwaway harnesses — see [Testing](#testing).
 
 ---
 
@@ -650,10 +702,10 @@ Where each marking-scheme item is or will be satisfied. Kept current as work lan
 | Paginated journal view | 5 | `Components/Pages/Journal.razor`, `Models/PagedResult.cs` | Done |
 | Search and filter | 5 | `Components/Pages/Journal.razor`, `Models/EntryQuery.cs` | Done |
 | Streak tracking | 5 | `Services/AnalyticsService.cs`, `Components/Pages/Dashboard.razor` | Done |
-| Theme customisation | 5 | `MainLayout.razor` toggle; `AppSettings.Theme` persistence | Partial |
+| Theme customisation | 5 | `MainLayout.razor`, `Components/Pages/Settings.razor` | Done |
 | Dashboard analytics | 5 | `Services/AnalyticsService.cs`, `Components/Pages/Dashboard.razor` | Done |
-| Security and privacy | 5 | `Models/AppSettings` PBKDF2 fields | Schema ready |
-| Export journals | 5 | Export service | Pending |
+| Security and privacy | 5 | `Services/SettingsService.cs`, `Components/Layout/LockScreen.razor` | Done |
+| Export journals | 5 | `Services/PdfJournalExporter.cs`, `Components/Pages/Export.razor` | Done |
 | Code readability | 5 | Throughout — XML doc comments, consistent naming | Ongoing |
 | Code efficiency | 5 | Indexed columns, stored `WordCount`, cached reference data, paged queries | Ongoing |
 | Code modularity | 5 | Interface-per-service, DI, layered structure | Ongoing |
