@@ -166,7 +166,7 @@ else
 @code {
     private const int SnippetLength = 110;
 
-    /// <summary>Weeks start on Sunday, following the design's own grid.</summary>
+    // Weeks start on Sunday, following the design's own grid.
     private static readonly string[] DayNames = { "Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat" };
 
     private static readonly MoodCategory[] MoodCategories =
@@ -184,7 +184,7 @@ else
     private bool _isLoading = true;
     private string? _loadFailure;
 
-    /// <summary>The next month is only reachable if any of it has happened.</summary>
+    // The next month is only reachable if any of it has happened.
     private bool CanGoForward => _month.AddMonths(1) <= new DateTime(DateTime.Today.Year, DateTime.Today.Month, 1);
 
     protected override async Task OnInitializedAsync()
@@ -202,10 +202,7 @@ else
         }
     }
 
-    /// <summary>
-    /// Loads one month at a time rather than the whole journal, so the query
-    /// stays bounded however long the journal grows.
-    /// </summary>
+    // Only loads the month being shown, not the whole journal.
     private async Task LoadMonthAsync(DateTime month)
     {
         _isLoading = true;
@@ -228,10 +225,8 @@ else
         }
     }
 
-    /// <summary>
-    /// The days making up the live streak, counted back from the most recent
-    /// entry, so the calendar can outline the run the figures describe.
-    /// </summary>
+    // Works out which days are part of the current streak so they can be
+    // outlined on the grid.
     private static HashSet<DateTime> BuildStreakDays(StreakSummary streaks)
     {
         var days = new HashSet<DateTime>();
@@ -249,7 +244,7 @@ else
         return days;
     }
 
-    /// <summary>Leading blanks so the first of the month lands under its weekday.</summary>
+    // Leading blanks so the first of the month lands under its weekday.
     private static List<DateTime?> BuildCells(DateTime firstDay, DateTime lastDay)
     {
         var cells = new List<DateTime?>();
@@ -291,11 +286,9 @@ else
         Navigation.NavigateTo($"/write/{date:yyyy-MM-dd}");
     }
 
-    /// <summary>
-    /// A square cell outlined in the accent for today, faintly for a streak day,
-    /// and a hairline otherwise. Future days are dimmed rather than hidden, so
-    /// the shape of the month stays intact.
-    /// </summary>
+    // Red outline for today, a fainter one for streak days, thin grey for the
+    // rest. Future days are dimmed instead of hidden so the month keeps its
+    // shape.
     private static string DayCellStyle(bool isToday, bool inStreak, bool isFuture)
     {
         var border = isToday
@@ -322,7 +315,7 @@ else
     private string MoodName(int moodId) =>
         _moodLookup.TryGetValue(moodId, out var mood) ? mood.Name : "Unknown mood";
 
-    /// <summary>A label over a display-serif figure, as the design sets its statistics.</summary>
+    // A label over a display-serif figure, as the design sets its statistics.
     private RenderFragment Figure(string label, int value, string? unit) => builder =>
     {
         builder.OpenElement(0, "div");
@@ -358,10 +351,7 @@ else
         builder.CloseElement();
     };
 
-    /// <summary>
-    /// Renders Markdown down to plain text for the preview line, so syntax
-    /// characters do not leak into the summary.
-    /// </summary>
+    // Strips the Markdown so the preview line doesn't show ** and # etc.
     private string Snippet(string content)
     {
         var text = Markdown.ToPlainText(content).Replace('\n', ' ').Replace('\r', ' ').Trim();

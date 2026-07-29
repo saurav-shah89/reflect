@@ -252,7 +252,7 @@ else
 }
 
 @code {
-    /// <summary>Date segment of the route, as yyyy-MM-dd. Absent means today.</summary>
+    // Date segment of the route, as yyyy-MM-dd. Absent means today.
     [Parameter]
     public string? DateText { get; set; }
 
@@ -282,10 +282,8 @@ else
     private string? _fatalError;
     private int _liveWordCount;
 
-    /// <summary>
-    /// Runs on every navigation, including moving between days, so the form
-    /// always reflects the date in the route.
-    /// </summary>
+    // Runs again when you move between days, so the form always matches the
+    // date in the URL.
     protected override async Task OnParametersSetAsync()
     {
         _isLoading = true;
@@ -319,7 +317,7 @@ else
         }
     }
 
-    /// <summary>Loads the entry for the current date, or resets to a blank form.</summary>
+    // Loads the entry for the current date, or resets to a blank form.
     private async Task LoadEntryAsync()
     {
         var entry = await EntryService.GetByDateAsync(_date);
@@ -358,7 +356,7 @@ else
         _liveWordCount = CountWords(_content);
     }
 
-    /// <summary>Parses the route segment, falling back to today when absent or malformed.</summary>
+    // Parses the route segment, falling back to today when absent or malformed.
     private static DateTime ParseDate(string? text) =>
         DateTime.TryParse(text, out var parsed) ? parsed.Date : DateTime.Today;
 
@@ -378,20 +376,16 @@ else
         _liveWordCount = CountWords(value);
     }
 
-    /// <summary>
-    /// Changing the primary mood drops it from the secondary selection, since a
-    /// mood cannot occupy two slots at once.
-    /// </summary>
+    // If the new primary was already picked as a secondary, remove it - the
+    // same mood can't be in two slots.
     private void OnPrimaryMoodChanged(int moodId)
     {
         _primaryMoodId = moodId;
         _secondaryMoodIds = _secondaryMoodIds.Where(id => id != moodId).ToArray();
     }
 
-    /// <summary>
-    /// Caps the secondary selection at two. Extra picks are dropped rather than
-    /// silently accepted, with a message explaining why.
-    /// </summary>
+    // Only two secondary moods allowed, and show a message rather than just
+    // ignoring the extra one.
     private void OnSecondaryMoodsChanged(IReadOnlyCollection<int> values)
     {
         var accepted = values.Where(id => id != _primaryMoodId).ToArray();
@@ -413,10 +407,7 @@ else
         }
     }
 
-    /// <summary>
-    /// Creates the tag if it is new, then selects it. An existing name resolves
-    /// to the existing tag rather than creating a duplicate.
-    /// </summary>
+    // Makes the tag if it doesn't exist yet, otherwise reuses the existing one.
     private async Task AddTagAsync()
     {
         if (string.IsNullOrWhiteSpace(_newTagName))
@@ -543,10 +534,8 @@ else
         }
     }
 
-    /// <summary>
-    /// Mirrors the counting rule in EntryService so the live count matches what
-    /// is ultimately stored.
-    /// </summary>
+    // Has to match how EntryService counts, otherwise the number on screen
+    // won't be the number that gets saved.
     private static int CountWords(string? content) =>
         string.IsNullOrWhiteSpace(content)
             ? 0
@@ -562,11 +551,8 @@ else
 
     private string MoodColour(Mood mood) => LetterpressTheme.ColourFor(mood.Name, mood.Category);
 
-    /// <summary>
-    /// A primary mood is filled with its own colour, a secondary outlined in it,
-    /// and an unchosen mood carries only a hairline - so rank is legible without
-    /// reading any label.
-    /// </summary>
+    // Primary is filled in, secondary is outlined, unpicked ones just get a
+    // thin border. Means you can tell them apart without reading anything.
     private string MoodChipStyle(Mood mood, bool isPrimary, bool isSecondary)
     {
         var colour = MoodColour(mood);
@@ -585,10 +571,7 @@ else
         ? "border:1px solid var(--lp-accent);background:var(--lp-accent);color:#FFFFFF;font-weight:600;"
         : "border:1px solid var(--lp-rule);background:transparent;color:var(--lp-muted);";
 
-    /// <summary>
-    /// Adds or removes a secondary mood, capped at two. An extra pick is refused
-    /// with an explanation rather than silently dropped.
-    /// </summary>
+    // Toggles a secondary mood on or off, up to the limit of two.
     private void ToggleSecondary(int moodId)
     {
         if (moodId == _primaryMoodId)

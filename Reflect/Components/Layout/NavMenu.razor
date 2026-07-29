@@ -85,10 +85,7 @@
 
     private int _currentStreak;
 
-    /// <summary>
-    /// Destinations are numbered like a contents page. Entries are added only
-    /// once the page they point at exists, so the menu never offers a dead link.
-    /// </summary>
+    // Numbered like a contents page.
     private static readonly (string Number, string Label, string Href, NavLinkMatch Match, string Icon)[] Destinations =
     {
         ("01", "Today", "", NavLinkMatch.All, Icons.Material.Filled.Today),

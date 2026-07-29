@@ -271,11 +271,8 @@ else
 
     private void OpenDate(DateTime date) => Navigation.NavigateTo($"/write/{date:yyyy-MM-dd}");
 
-    /// <summary>
-    /// Tone rather than colour. The stacked bar reads Positive as solid ink,
-    /// Neutral as a half-tone and Negative as the bare page, which is how a
-    /// press separates three values without reaching for a second plate.
-    /// </summary>
+    // Shades rather than colours - solid, half tone, and empty. Keeps the bar
+    // readable without adding another colour to the page.
     private static string ToneFill(MoodCategory category) => category switch
     {
         MoodCategory.Positive => "background: var(--lp-ink); border-right: 1px solid var(--lp-ink);",
@@ -286,7 +283,7 @@ else
     private static string PillStyle() =>
         "border:1px solid var(--lp-rule);background:transparent;color:var(--lp-muted);";
 
-    /// <summary>A ruled label, a hairline track filled in ink, and the value set as a figure.</summary>
+    // A ruled label, a hairline track filled in ink, and the value set as a figure.
     private RenderFragment Bar(string label, int value, int max) => builder =>
     {
         var width = max <= 0 ? 0 : Math.Round(value * 100.0 / max, 1);
@@ -315,11 +312,9 @@ else
         builder.CloseElement();
     };
 
-    /// <summary>
-    /// The trend drawn as plain SVG rather than through the chart component: the
-    /// design calls for a dashed rule set, an area wash and no axis furniture,
-    /// which is less work to state directly than to configure away.
-    /// </summary>
+    // Drawn as plain SVG instead of using MudChart. The design wants dashed
+    // gridlines, a shaded area and no axes, and it was easier to just draw it
+    // than to turn all the chart component's bits off.
     private RenderFragment TrendChart() => builder =>
     {
         var points = _summary.WordCountTrend;
@@ -398,7 +393,7 @@ else
         builder.CloseElement();
     };
 
-    /// <summary>A label over a display-serif figure, as the design sets its statistics.</summary>
+    // A label over a display-serif figure, as the design sets its statistics.
     private RenderFragment Figure(string label, int value, string unit, bool accent) => builder =>
     {
         builder.OpenElement(0, "div");

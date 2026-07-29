@@ -2,19 +2,15 @@ using MudBlazor;
 
 namespace Reflect.Theme;
 
-/// <summary>
-/// The Letterpress visual language, taken from the DailyScribe v3 design.
-/// </summary>
-/// <remarks>
-/// Only colour and geometry live here. Typography, rules, grain and the folio
-/// numerals are expressed in <c>app.css</c> instead: they depend on selectors
-/// and pseudo-elements that a theme object cannot reach, and keeping them in one
-/// stylesheet avoids the same values being defined in two places.
-///
-/// The defining geometry is that nothing is rounded and nothing floats. Corners
-/// are square and shadows are absent, so depth comes from hairline rules and the
-/// weight of the type rather than from elevation.
-/// </remarks>
+// Colours and sizes for the Letterpress design.
+//
+// Only colour and geometry are here. The fonts, rules, grain and folio numbers
+// are in app.css instead, because they need selectors and pseudo-elements that
+// you can't set from a theme object - and keeping them in one place stops the
+// same values being written twice.
+//
+// The main rule of the design is that nothing is rounded and nothing floats, so
+// corners are square and there are no shadows anywhere.
 public static class LetterpressTheme
 {
     // Light — warm paper stock under a deep press red.
@@ -44,18 +40,15 @@ public static class LetterpressTheme
     public const string DarkAccent = "#E0483A";
     public const string DarkAccentSoft = "#241413";
 
-    /// <summary>Font stacks. Each falls back to a face present on every desktop.</summary>
+    // Font stacks. Each falls back to a face present on every desktop.
     public static readonly string[] DisplayFont = { "Bodoni Moda", "Didot", "Georgia", "serif" };
 
     public static readonly string[] ProseFont = { "Newsreader", "Georgia", "serif" };
 
     public static readonly string[] ChromeFont = { "IBM Plex Mono", "ui-monospace", "Consolas", "monospace" };
 
-    /// <summary>
-    /// Mood colours from the design, keyed by the mood names the specification
-    /// fixes. Looked up by name because the seeded ids are assigned by the
-    /// database and are not stable across installs.
-    /// </summary>
+    // Keyed by name rather than id, because the ids come from the database and
+    // could be different on another install.
     private static readonly Dictionary<string, string> MoodColours = new(StringComparer.OrdinalIgnoreCase)
     {
         // Positive
@@ -78,15 +71,13 @@ public static class LetterpressTheme
         ["Anxious"] = "#B287B4",
     };
 
-    /// <summary>Category colours used for grouped figures and legends.</summary>
+    // Category colours used for grouped figures and legends.
     public const string PositiveColour = "#57A773";
     public const string NeutralColour = "#6E97BE";
     public const string NegativeColour = "#9B6E93";
 
-    /// <summary>
-    /// Returns the design's colour for a mood, falling back to its category
-    /// colour so a mood added later still renders in the right family.
-    /// </summary>
+    // Falls back to the category colour, so a mood added later still comes out
+    // roughly the right shade.
     public static string ColourFor(string moodName, Models.MoodCategory category) =>
         MoodColours.TryGetValue(moodName, out var colour) ? colour : ColourFor(category);
 
@@ -97,7 +88,7 @@ public static class LetterpressTheme
         _ => NeutralColour
     };
 
-    /// <summary>The MudBlazor theme both palettes are wired into.</summary>
+    // The MudBlazor theme both palettes are wired into.
     public static MudTheme Build() => new()
     {
         PaletteLight = new PaletteLight

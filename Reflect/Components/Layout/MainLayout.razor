@@ -86,10 +86,8 @@
 
     private void OnLockChanged() => InvokeAsync(StateHasChanged);
 
-    /// <summary>
-    /// Re-reads whether a lock is configured, so the sidebar's lock control
-    /// appears or disappears as soon as the credential is set or removed.
-    /// </summary>
+    // Re-reads whether a passphrase exists, so the sidebar's lock button shows
+    // up or disappears straight after it's set or removed.
     private void OnLockConfigurationChanged() => InvokeAsync(async () =>
     {
         _isLockConfigured = await Settings.IsLockEnabledAsync();
@@ -98,7 +96,7 @@
 
     private void LockNow() => LockState.Lock();
 
-    /// <summary>Flips the theme and persists it, so the choice survives a restart.</summary>
+    // Flips the theme and persists it, so the choice survives a restart.
     private async Task ToggleThemeAsync()
     {
         _isDarkMode = !_isDarkMode;

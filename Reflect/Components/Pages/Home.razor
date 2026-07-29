@@ -66,8 +66,7 @@ else
             }
             else
             {
-                @* Ruled rows rather than an icon list: the same row treatment the
-                   dashboard uses, and each one opens that day's entry. *@
+                @* Clicking a row opens that day's entry. *@
                 @foreach (var entry in _recent)
                 {
                     <div class="lp-rule-row entry-card d-flex align-baseline justify-space-between"
@@ -76,8 +75,7 @@ else
                          tabindex="0"
                          @onclick="@(() => OpenDate(entry.EntryDate))"
                          @onkeydown="@(e => OnRowKeyDown(e, entry.EntryDate))">
-                        @* An entry title is content, so it takes the display face as it
-                           does in the timeline, rather than the mono used for chrome. *@
+                        @* Serif here to match the timeline. *@
                         <MudText Typo="Typo.body1" Class="lp-display" Style="font-size: 1.12rem;">
                             @entry.Title
                         </MudText>
@@ -101,7 +99,7 @@ else
 @code {
     private const int RecentCount = 5;
 
-    /// <summary>The letterpress action button: square, spaced small caps.</summary>
+    // Square button with wide letter spacing, same as the other screens.
     private const string ActionButtonStyle =
         "border-radius: 0; padding: 11px 18px; font-size: 0.66rem; " +
         "letter-spacing: 0.2em; text-transform: uppercase; font-weight: 600;";
@@ -114,10 +112,8 @@ else
 
     private void OpenDate(DateTime date) => Navigation.NavigateTo($"/write/{date:yyyy-MM-dd}");
 
-    /// <summary>
-    /// The rows are divs carrying role="button", so the keyboard activation a real
-    /// button would give for free has to be supplied here.
-    /// </summary>
+    // The rows are divs, not buttons, so Enter and Space have to be wired up
+    // manually or they can't be used from the keyboard.
     private void OnRowKeyDown(KeyboardEventArgs args, DateTime date)
     {
         if (args.Key is "Enter" or " ")
@@ -138,8 +134,8 @@ else
         }
         catch (Exception ex)
         {
-            // Surface the failure in the UI rather than leaving a blank screen,
-            // and log the detail so it can be diagnosed.
+            // Show something on screen instead of a blank page, and log the
+            // details.
             Logger.LogError(ex, "Failed to load the home page");
             _loadFailure = ex.Message;
         }

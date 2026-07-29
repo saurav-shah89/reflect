@@ -117,10 +117,7 @@
         await CountAsync();
     }
 
-    /// <summary>
-    /// Counts what would be exported, so the range can be judged before
-    /// committing to writing a file.
-    /// </summary>
+    // Shows how many entries the range covers before you commit to exporting.
     private async Task CountAsync()
     {
         _isCounting = true;
@@ -159,7 +156,7 @@
         await CountAsync();
     }
 
-    /// <summary>Widens the range to cover the whole journal.</summary>
+    // Widens the range to cover the whole journal.
     private async Task ApplyEverythingAsync()
     {
         _dateRange = new DateRange(new DateTime(2000, 1, 1), DateTime.Today);
@@ -209,11 +206,8 @@
         }
     }
 
-    /// <summary>
-    /// Picks somewhere sensible to write. Documents on desktop, where the user
-    /// can find the file; the app's own data directory on platforms that do not
-    /// grant access to a shared documents folder.
-    /// </summary>
+    // Documents folder on Windows so the file is easy to find. Mobile doesn't
+    // let you write there, so it falls back to the app's own folder.
     private static string ResolveExportDirectory()
     {
         var documents = Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments);

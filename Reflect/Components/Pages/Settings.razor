@@ -167,7 +167,7 @@ else
     // the bare name would resolve to it rather than to the type.
     private const int MinimumLength = Reflect.Services.SettingsService.MinimumLength;
 
-    /// <summary>The letterpress action button: square, spaced small caps.</summary>
+    // The letterpress action button: square, spaced small caps.
     private const string ActionButtonStyle =
         "border-radius: 0; padding: 11px 18px; font-size: 0.66rem; " +
         "letter-spacing: 0.2em; text-transform: uppercase; font-weight: 600;";
@@ -323,7 +323,7 @@ else
         }
     }
 
-    /// <summary>Checks the two new-passphrase boxes agree, reporting if not.</summary>
+    // Checks the two new-passphrase boxes agree, reporting if not.
     private bool PassphrasesMatch()
     {
         if (string.IsNullOrWhiteSpace(_newPassphrase))

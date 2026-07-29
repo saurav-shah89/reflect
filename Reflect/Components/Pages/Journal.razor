@@ -257,10 +257,8 @@ else
         }
     }
 
-    /// <summary>
-    /// Runs the query. Filtering and paging happen in SQL rather than in memory,
-    /// so only the page being shown is materialised.
-    /// </summary>
+    // Filtering and paging are done in SQL, so only the page being shown gets
+    // loaded rather than the whole journal.
     private async Task SearchAsync(int page)
     {
         _isSearching = true;
@@ -351,16 +349,13 @@ else
     private string MoodName(int moodId) =>
         _moodLookup.TryGetValue(moodId, out var mood) ? mood.Name : "Unknown";
 
-    /// <summary>The design's colour for a mood, so tone reads at a glance.</summary>
+    // The design's colour for a mood, so tone reads at a glance.
     private string MoodColour(int moodId) =>
         _moodLookup.TryGetValue(moodId, out var mood)
             ? LetterpressTheme.ColourFor(mood.Name, mood.Category)
             : LetterpressTheme.NeutralColour;
 
-    /// <summary>
-    /// A primary mood is filled with a wash of its own colour; a secondary is
-    /// outlined, so the two ranks stay distinguishable without a second label.
-    /// </summary>
+    // Primary mood gets a tint of its colour, secondary just an outline.
     private string MoodChipStyle(int moodId, bool isPrimary)
     {
         var colour = MoodColour(moodId);
@@ -370,14 +365,14 @@ else
             : $"border:1px solid {colour}66;padding:3px 10px;color:var(--lp-muted);";
     }
 
-    /// <summary>Neutral rule, so the mood colours stay the only hue in the row.</summary>
+    // Neutral rule, so the mood colours stay the only hue in the row.
     private const string CategoryChipStyle =
         "border:1px solid var(--lp-rule-strong);padding:3px 10px;color:var(--lp-muted);";
 
     private string CategoryName(int categoryId) =>
         _categories.FirstOrDefault(c => c.Id == categoryId)?.Name ?? "Uncategorised";
 
-    /// <summary>Plain-text preview, so Markdown syntax does not leak into the summary.</summary>
+    // Plain-text preview, so Markdown syntax does not leak into the summary.
     private string Snippet(string content)
     {
         if (string.IsNullOrWhiteSpace(content))
