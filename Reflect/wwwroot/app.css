@@ -351,6 +351,93 @@ body,
     padding: 0 2px;
 }
 
+/* ------------------------------------------------------------ dashboard --- */
+
+/* The half-tone between solid ink and bare page. No MudBlazor equivalent. */
+:root { --lp-halftone: #B8B4AA; }
+.lp-dark { --lp-halftone: #4A4945; }
+
+.lp-stat-row {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 26px;
+}
+
+@media (min-width: 960px) {
+    .lp-stat-row { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+}
+
+.lp-panel-pair {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: 34px;
+}
+
+@media (min-width: 960px) {
+    .lp-panel-pair { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+
+/*
+ * Proportion carried by tone, not colour: one ruled bar divided into solid ink,
+ * half-tone and bare page.
+ */
+.lp-tonebar {
+    display: flex;
+    height: 30px;
+    border: 1px solid var(--lp-ink);
+}
+
+.lp-tonebar > div { transition: width 500ms cubic-bezier(0.2, 0.8, 0.2, 1); }
+
+.lp-tone-key {
+    flex: 0 0 auto;
+    width: 12px;
+    height: 12px;
+    border: 1px solid var(--lp-ink);
+}
+
+.lp-rule-row {
+    padding: 11px 0;
+    border-bottom: 1px solid var(--lp-rule);
+}
+
+/* Bar rows: ruled label, hairline track, figure. */
+.lp-bar-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 12px;
+}
+
+.lp-bar-label {
+    flex: 0 0 78px;
+    text-align: right;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.lp-bar-track {
+    flex: 1;
+    height: 14px;
+    border: 1px solid var(--lp-rule-strong);
+    overflow: hidden;
+}
+
+.lp-bar-fill {
+    display: block;
+    height: 100%;
+    background: var(--lp-ink);
+    transition: width 500ms cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+.lp-bar-value {
+    flex: 0 0 30px;
+    font-size: 17px;
+    line-height: 1;
+    text-align: right;
+}
+
 /* ---------------------------------------------------------------- marks --- */
 
 /* Mood swatch. Square, because circles read as a different design language. */
