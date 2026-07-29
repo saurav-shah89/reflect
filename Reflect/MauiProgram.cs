@@ -40,20 +40,19 @@ public static class MauiProgram
 	// be swapped without touching the pages.
 	private static void RegisterApplicationServices(IServiceCollection services)
 	{
-		// The library does not know where the platform keeps app data, so the app
-		// supplies the path. This is the one piece of platform knowledge the
-		// domain needs and the reason it can target plain net10.0.
+		// Reflect.Core has no idea where the app data folder is, so the path gets
+		// passed in from here. That was the only bit of MAUI it needed, which is
+		// why it can target plain net10.0.
 		services.AddSingleton<IJournalDatabase>(provider => new JournalDatabase(
 			Path.Combine(FileSystem.AppDataDirectory, JournalDatabase.DatabaseFileName),
 			provider.GetRequiredService<ILogger<JournalDatabase>>()));
 
-		// Reference data is cached in memory and shared across screens, so it is a
-		// singleton. The Markdown pipeline is immutable and expensive to build,
-		// so it is shared too.
+		// Singletons - the reference data is cached and shared by every screen,
+		// and the Markdown pipeline is slow to build so it's only made once.
 		services.AddSingleton<IReferenceDataService, ReferenceDataService>();
 		services.AddSingleton<IMarkdownRenderer, MarkdownRenderer>();
 
-		// Lock state is per session and shared by every screen, so it is a singleton.
+		// One lock state for the whole session.
 		services.AddSingleton<AppLockState>();
 
 		services.AddScoped<IEntryService, EntryService>();
