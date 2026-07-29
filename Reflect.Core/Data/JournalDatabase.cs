@@ -8,9 +8,15 @@ namespace Reflect.Data;
 /// Owns the SQLite connection: creates the file, builds the schema and seeds the
 /// fixed reference data exactly once per install.
 /// </summary>
+/// <remarks>
+/// The file location is supplied by the caller rather than resolved here. Asking
+/// the platform for its app-data directory was this class's only dependency on
+/// MAUI, and injecting the path instead lets the whole domain live in a plain
+/// net10.0 library that tests can reference without platform target frameworks.
+/// </remarks>
 public sealed class JournalDatabase : IJournalDatabase
 {
-    /// <summary>Database file name inside the platform's app-data directory.</summary>
+    /// <summary>Conventional database file name.</summary>
     public const string DatabaseFileName = "reflect.db3";
 
     private const SQLiteOpenFlags OpenFlags =
@@ -18,16 +24,26 @@ public sealed class JournalDatabase : IJournalDatabase
         SQLiteOpenFlags.Create |
         SQLiteOpenFlags.SharedCache;
 
+    private readonly string _databasePath;
     private readonly ILogger<JournalDatabase> _logger;
     private readonly SemaphoreSlim _initLock = new(1, 1);
 
     private SQLiteAsyncConnection? _connection;
 
-    public JournalDatabase(ILogger<JournalDatabase> logger) => _logger = logger;
+    /// <param name="databasePath">Full path to the SQLite file, created if absent.</param>
+    public JournalDatabase(string databasePath, ILogger<JournalDatabase> logger)
+    {
+        if (string.IsNullOrWhiteSpace(databasePath))
+        {
+            throw new ArgumentException("A database path is required.", nameof(databasePath));
+        }
 
-    /// <summary>Full path to the database file on the current platform.</summary>
-    public static string DatabasePath =>
-        Path.Combine(FileSystem.AppDataDirectory, DatabaseFileName);
+        _databasePath = databasePath;
+        _logger = logger;
+    }
+
+    /// <summary>Full path to the database file this instance is using.</summary>
+    public string DatabasePath => _databasePath;
 
     /// <inheritdoc />
     public async Task<SQLiteAsyncConnection> GetConnectionAsync()
@@ -48,12 +64,12 @@ public sealed class JournalDatabase : IJournalDatabase
                 return _connection;
             }
 
-            var connection = new SQLiteAsyncConnection(DatabasePath, OpenFlags);
+            var connection = new SQLiteAsyncConnection(_databasePath, OpenFlags);
             await CreateSchemaAsync(connection).ConfigureAwait(false);
             await SeedAsync(connection).ConfigureAwait(false);
 
             _connection = connection;
-            _logger.LogInformation("Journal database ready at {Path}", DatabasePath);
+            _logger.LogInformation("Journal database ready at {Path}", _databasePath);
             return _connection;
         }
         finally

@@ -47,7 +47,12 @@ public static class MauiProgram
 	/// </remarks>
 	private static void RegisterApplicationServices(IServiceCollection services)
 	{
-		services.AddSingleton<IJournalDatabase, JournalDatabase>();
+		// The library does not know where the platform keeps app data, so the app
+		// supplies the path. This is the one piece of platform knowledge the
+		// domain needs and the reason it can target plain net10.0.
+		services.AddSingleton<IJournalDatabase>(provider => new JournalDatabase(
+			Path.Combine(FileSystem.AppDataDirectory, JournalDatabase.DatabaseFileName),
+			provider.GetRequiredService<ILogger<JournalDatabase>>()));
 
 		// Reference data is cached in memory and shared across screens, so it is a
 		// singleton. The Markdown pipeline is immutable and expensive to build,
