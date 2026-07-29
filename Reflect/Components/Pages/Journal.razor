@@ -7,8 +7,7 @@
 
 <PageTitle>Journal &middot; Reflect</PageTitle>
 
-<MudText Typo="Typo.h4" GutterBottom="true">Journal</MudText>
-<MudText Typo="Typo.subtitle1" Class="mb-4">Everything you have written, newest first.</MudText>
+<ScreenHeader Title="Timeline" Subtitle="Everything you have written, newest first" />
 
 @if (_loadFailure is not null)
 {
@@ -154,12 +153,20 @@ else
                     </div>
 
                     <div class="d-flex flex-wrap align-center gap-1 my-2">
-                        <MudChip T="string" Size="Size.Small" Color="@MoodColour(entry.PrimaryMoodId)"
-                                 Text="@MoodName(entry.PrimaryMoodId)" />
+                        @* Mood colours come from the design rather than the component
+                           palette, so a mood always reads as the same hue. *@
+                        <span class="lp-label d-inline-flex align-center"
+                              style="@MoodChipStyle(entry.PrimaryMoodId, true)">
+                            <span class="lp-swatch mr-2" style="@($"background:{MoodColour(entry.PrimaryMoodId)};")"></span>
+                            @MoodName(entry.PrimaryMoodId)
+                        </span>
                         @foreach (var secondary in SecondaryMoods(entry))
                         {
-                            <MudChip T="string" Size="Size.Small" Variant="Variant.Outlined"
-                                     Color="@MoodColour(secondary)" Text="@MoodName(secondary)" />
+                            <span class="lp-label d-inline-flex align-center"
+                                  style="@MoodChipStyle(secondary, false)">
+                                <span class="lp-swatch mr-2" style="@($"background:{MoodColour(secondary)};")"></span>
+                                @MoodName(secondary)
+                            </span>
                         }
                         @if (entry.CategoryId is int categoryId)
                         {
@@ -331,20 +338,23 @@ else
     private string MoodName(int moodId) =>
         _moodLookup.TryGetValue(moodId, out var mood) ? mood.Name : "Unknown";
 
-    /// <summary>Colours a mood chip by its category, so tone reads at a glance.</summary>
-    private Color MoodColour(int moodId)
-    {
-        if (!_moodLookup.TryGetValue(moodId, out var mood))
-        {
-            return Color.Default;
-        }
+    /// <summary>The design's colour for a mood, so tone reads at a glance.</summary>
+    private string MoodColour(int moodId) =>
+        _moodLookup.TryGetValue(moodId, out var mood)
+            ? LetterpressTheme.ColourFor(mood.Name, mood.Category)
+            : LetterpressTheme.NeutralColour;
 
-        return mood.Category switch
-        {
-            MoodCategory.Positive => Color.Success,
-            MoodCategory.Negative => Color.Error,
-            _ => Color.Info
-        };
+    /// <summary>
+    /// A primary mood is filled with a wash of its own colour; a secondary is
+    /// outlined, so the two ranks stay distinguishable without a second label.
+    /// </summary>
+    private string MoodChipStyle(int moodId, bool isPrimary)
+    {
+        var colour = MoodColour(moodId);
+
+        return isPrimary
+            ? $"background:{colour}22;border:1px solid {colour};padding:3px 10px;color:var(--lp-ink);"
+            : $"border:1px solid {colour}66;padding:3px 10px;color:var(--lp-muted);";
     }
 
     private string CategoryName(int categoryId) =>

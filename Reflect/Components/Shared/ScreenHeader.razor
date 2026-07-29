@@ -1,0 +1,30 @@
+@* The masthead every screen opens with: display title, a tick-led subtitle, and
+   a heavy rule closing it off. Shared so the rule weight and the type scale are
+   defined once rather than drifting apart across seven pages. *@
+<div class="lp-rule-heavy d-flex align-end justify-space-between flex-wrap mb-6"
+     style="gap: 16px; padding-bottom: 18px;">
+    <div>
+        <MudText Typo="Typo.h4" Class="lp-ink-in">@Title</MudText>
+
+        @if (!string.IsNullOrWhiteSpace(Subtitle))
+        {
+            <div class="lp-label lp-tick" style="margin-top: 12px;">@Subtitle</div>
+        }
+    </div>
+
+    @if (Actions is not null)
+    {
+        <div class="d-flex align-center flex-wrap" style="gap: 10px;">
+            @Actions
+        </div>
+    }
+</div>
+
+@code {
+    [Parameter, EditorRequired] public string Title { get; set; } = string.Empty;
+
+    [Parameter] public string? Subtitle { get; set; }
+
+    /// <summary>Controls aligned to the baseline of the title, on the right.</summary>
+    [Parameter] public RenderFragment? Actions { get; set; }
+}

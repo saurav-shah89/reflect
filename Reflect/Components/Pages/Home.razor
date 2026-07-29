@@ -4,8 +4,7 @@
 
 <PageTitle>Today &middot; Reflect</PageTitle>
 
-<MudText Typo="Typo.h4" GutterBottom="true">Today</MudText>
-<MudText Typo="Typo.subtitle1" Class="mb-6">@DateTime.Now.ToString("dddd, d MMMM yyyy")</MudText>
+<ScreenHeader Title="Today" Subtitle="@DateTime.Now.ToString("dddd, d MMMM yyyy")" />
 
 @if (_loadFailure is not null)
 {
@@ -19,11 +18,11 @@ else if (_isLoading)
 }
 else
 {
-    <MudCard Class="mb-6">
-        <MudCardContent>
+    <div class="lp-block mb-8">
+        <div>
             @if (_todaysEntry is null)
             {
-                <MudText Typo="Typo.h6">Nothing written yet</MudText>
+                <MudText Typo="Typo.h5">Nothing written yet</MudText>
                 <MudText Typo="Typo.body2" Class="mt-2 mb-4">
                     You have not made an entry for today.
                 </MudText>
@@ -34,7 +33,7 @@ else
             }
             else
             {
-                <MudText Typo="Typo.h6">@_todaysEntry.Title</MudText>
+                <MudText Typo="Typo.h5">@_todaysEntry.Title</MudText>
                 <MudText Typo="Typo.caption" Class="mb-4 d-block">
                     @_todaysEntry.WordCount words &middot;
                     last updated @_todaysEntry.UpdatedAt.ToString("HH:mm")
@@ -44,10 +43,10 @@ else
                            StartIcon="@Icons.Material.Filled.Edit"
                            Href="/write">Edit today's entry</MudButton>
             }
-        </MudCardContent>
-    </MudCard>
+        </div>
+    </div>
 
-    <MudText Typo="Typo.h6" GutterBottom="true">Recent entries</MudText>
+    <div class="lp-label mb-3">Recent entries</div>
 
     @if (_recent.Count == 0)
     {

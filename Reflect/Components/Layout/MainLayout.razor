@@ -1,80 +1,61 @@
 @inherits LayoutComponentBase
 @implements IDisposable
+@using Reflect.Theme
 @inject ISettingsService Settings
 @inject AppLockState LockState
 @inject ILogger<MainLayout> Logger
 
 @* MudBlazor providers must sit above the routed content: popovers, dialogs and
    snackbars render into these, so components anywhere in the tree can raise them. *@
-<MudThemeProvider @ref="_themeProvider" IsDarkMode="_isDarkMode" />
+<MudThemeProvider Theme="_theme" IsDarkMode="_isDarkMode" />
 <MudPopoverProvider />
 <MudDialogProvider />
 <MudSnackbarProvider />
 
-@if (_isStarting)
-{
-    @* Nothing is rendered until the lock state is known, so a locked journal
-       never flashes its contents on the way to the lock screen. *@
-    <div class="lock-screen">
-        <MudProgressCircular Indeterminate="true" Color="Color.Primary" />
-    </div>
-}
-else if (_isLocked)
-{
-    <LockScreen />
-}
-else
-{
-    <MudLayout>
-        <MudAppBar Elevation="1">
-            <MudIconButton Icon="@Icons.Material.Filled.Menu"
-                           Color="Color.Inherit"
-                           Edge="Edge.Start"
-                           OnClick="ToggleDrawer"
-                           aria-label="Toggle navigation" />
-            <MudText Typo="Typo.h6" Class="ml-2">Reflect</MudText>
-            <MudSpacer />
-            @if (_isLockConfigured)
-            {
-                <MudIconButton Icon="@Icons.Material.Filled.Lock"
-                               Color="Color.Inherit"
-                               OnClick="LockNow"
-                               aria-label="Lock the journal"
-                               Title="Lock the journal" />
-            }
-            <MudIconButton Icon="@ThemeIcon"
-                           Color="Color.Inherit"
-                           OnClick="ToggleThemeAsync"
-                           aria-label="@ThemeLabel"
-                           Title="@ThemeLabel" />
-        </MudAppBar>
+@* The wrapper carries the dark-mode signal for the letterpress variables. It has
+   to be our own class rather than MudBlazor's, because the lock screen renders
+   outside MudLayout and would otherwise miss it. *@
+<div class="lp-root @(_isDarkMode ? "lp-dark" : null)">
+    @if (_isStarting)
+    {
+        @* Nothing is rendered until the lock state is known, so a locked journal
+           never flashes its contents on the way to the lock screen. *@
+        <div class="lock-screen">
+            <MudProgressCircular Indeterminate="true" Color="Color.Primary" />
+        </div>
+    }
+    else if (_isLocked)
+    {
+        <LockScreen />
+    }
+    else
+    {
+        <MudLayout Class="lp-grain">
+            <MudDrawer Open="true" Variant="DrawerVariant.Persistent" Elevation="0"
+                       ClipMode="DrawerClipMode.Never">
+                <NavMenu IsDarkMode="_isDarkMode"
+                         IsLockConfigured="_isLockConfigured"
+                         OnToggleTheme="ToggleThemeAsync"
+                         OnLockNow="LockNow" />
+            </MudDrawer>
 
-        <MudDrawer @bind-Open="_drawerOpen" Elevation="1" ClipMode="DrawerClipMode.Always">
-            <NavMenu />
-        </MudDrawer>
-
-        <MudMainContent>
-            <MudContainer MaxWidth="MaxWidth.Large" Class="py-6">
-                @Body
-            </MudContainer>
-        </MudMainContent>
-    </MudLayout>
-}
+            <MudMainContent Class="pa-0">
+                <MudContainer MaxWidth="MaxWidth.Large" Class="py-8">
+                    @Body
+                </MudContainer>
+            </MudMainContent>
+        </MudLayout>
+    }
+</div>
 
 @code {
-    private MudThemeProvider? _themeProvider;
-    private bool _drawerOpen = true;
+    private readonly MudTheme _theme = LetterpressTheme.Build();
+
     private bool _isDarkMode;
     private bool _isStarting = true;
     private bool _isLockConfigured;
 
     private bool _isLocked => _isLockConfigured && !LockState.IsUnlocked;
-
-    private string ThemeIcon => _isDarkMode
-        ? Icons.Material.Filled.LightMode
-        : Icons.Material.Filled.DarkMode;
-
-    private string ThemeLabel => _isDarkMode ? "Switch to light theme" : "Switch to dark theme";
 
     protected override void OnInitialized()
     {
@@ -105,13 +86,19 @@ else
 
     private void OnLockChanged() => InvokeAsync(StateHasChanged);
 
-    private void ToggleDrawer() => _drawerOpen = !_drawerOpen;
+    /// <summary>
+    /// Re-reads whether a lock is configured, so the sidebar's lock control
+    /// appears or disappears as soon as the credential is set or removed.
+    /// </summary>
+    private void OnLockConfigurationChanged() => InvokeAsync(async () =>
+    {
+        _isLockConfigured = await Settings.IsLockEnabledAsync();
+        StateHasChanged();
+    });
 
     private void LockNow() => LockState.Lock();
 
-    /// <summary>
-    /// Flips the theme and persists it, so the choice survives a restart.
-    /// </summary>
+    /// <summary>Flips the theme and persists it, so the choice survives a restart.</summary>
     private async Task ToggleThemeAsync()
     {
         _isDarkMode = !_isDarkMode;
@@ -127,16 +114,6 @@ else
             Logger.LogError(ex, "Could not persist the theme preference");
         }
     }
-
-    /// <summary>
-    /// Re-reads whether a lock is configured, so the app bar's lock button
-    /// appears or disappears as soon as the credential is set or removed.
-    /// </summary>
-    private void OnLockConfigurationChanged() => InvokeAsync(async () =>
-    {
-        _isLockConfigured = await Settings.IsLockEnabledAsync();
-        StateHasChanged();
-    });
 
     public void Dispose()
     {

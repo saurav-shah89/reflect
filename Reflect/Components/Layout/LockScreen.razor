@@ -4,12 +4,13 @@
 
 @* Shown in place of the whole app while the journal is locked. Nothing behind
    it is rendered, so entry content never reaches the DOM before unlocking. *@
-<div class="lock-screen">
-    <MudPaper Outlined="true" Class="pa-8 lock-panel">
-        <div class="d-flex flex-column align-center mb-4">
-            <MudIcon Icon="@Icons.Material.Filled.Lock" Size="Size.Large" Color="Color.Primary" />
-            <MudText Typo="Typo.h5" Class="mt-2">Reflect</MudText>
-            <MudText Typo="Typo.body2">Your journal is locked.</MudText>
+<div class="lock-screen lp-grain">
+    <div class="lock-panel lp-stagger">
+
+        <div class="d-flex flex-column align-center mb-6">
+            <div class="lp-monogram" style="width: 78px; height: 78px; font-size: 44px;">R</div>
+            <div class="lp-display lp-ink-in mt-4" style="font-size: 46px; line-height: 1;">Reflect</div>
+            <div class="lp-label mt-3">Enter your passphrase to unlock</div>
         </div>
 
         <MudTextField @bind-Value="_passphrase"
@@ -19,25 +20,29 @@
                       Immediate="true"
                       OnKeyDown="OnKeyDown"
                       Disabled="_isChecking"
-                      Class="mb-3" />
+                      Class="mb-4"
+                      Style="border-radius: 0;" />
 
         @if (_error is not null)
         {
-            <MudAlert Severity="Severity.Error" Dense="true" Class="mb-3">@_error</MudAlert>
+            <MudAlert Severity="Severity.Error" Dense="true" Class="mb-4" Style="border-radius: 0;">
+                @_error
+            </MudAlert>
         }
 
         <MudButton Variant="Variant.Filled"
                    Color="Color.Primary"
                    FullWidth="true"
                    Disabled="@(_isChecking || string.IsNullOrEmpty(_passphrase))"
-                   OnClick="UnlockAsync">
+                   OnClick="UnlockAsync"
+                   Style="border-radius: 0; padding: 12px; font-size: 0.7rem; letter-spacing: 0.2em; text-transform: uppercase; font-weight: 600;">
             @(_isChecking ? "Checking…" : "Unlock")
         </MudButton>
 
-        <MudText Typo="Typo.caption" Class="mt-4 d-block text-center">
+        <div class="lp-label mt-6" style="font-size: 0.55rem; line-height: 1.7;">
             There is no recovery. If you forget it, the journal cannot be opened.
-        </MudText>
-    </MudPaper>
+        </div>
+    </div>
 </div>
 
 @code {
