@@ -23,31 +23,28 @@ Built with .NET MAUI Blazor Hybrid for **CS6004NI Application Development**, Cou
 - [Security](#security)
 - [Building and Publishing](#building-and-publishing)
 - [Troubleshooting](#troubleshooting)
-- [Roadmap](#roadmap)
 - [Coursework Mapping](#coursework-mapping)
-- [Academic Integrity](#academic-integrity)
 
 ---
 
 ## Key Features
 
-The twelve features required by the specification, with what works today marked. Anything not
-marked done is a target, not a description of current behaviour.
+The twelve features required by the specification.
 
-| # | Feature | Description | Status |
-| --- | --- | --- | --- |
-| 1 | Journal entry management | Create, update and delete a single entry per calendar day, with system-generated timestamps | Done |
-| 2 | Markdown writing | Formatting support — bold, italics, lists, headings, links | Done |
-| 3 | Mood tracking | One required primary mood plus up to two optional secondary moods | Done |
-| 4 | Tagging | Pre-built and user-created tags to classify entries | Done |
-| 5 | Calendar navigation | Browse entries through a month view | Done |
-| 6 | Paginated journal view | Timeline list, page by page | Done |
-| 7 | Search and filter | Search title and content; filter by date range, moods, tags or category | Done |
-| 8 | Streak tracking | Current streak, longest streak and missed days | Done |
-| 9 | Theme customisation | Light and dark themes | Done |
-| 10 | Dashboard analytics | Mood distribution, most frequent mood, most used tags, tag breakdown, word-count trends | Done |
-| 11 | Security and privacy | Password or PIN protection for the journal | Done |
-| 12 | Export | Export a date range of entries to PDF | Done |
+| # | Feature | Description |
+| --- | --- | --- |
+| 1 | Journal entry management | Create, update and delete a single entry per calendar day, with system-generated timestamps |
+| 2 | Markdown writing | Formatting support — bold, italics, lists, headings, links |
+| 3 | Mood tracking | One required primary mood plus up to two optional secondary moods |
+| 4 | Tagging | Pre-built and user-created tags to classify entries |
+| 5 | Calendar navigation | Browse entries through a month view |
+| 6 | Paginated journal view | Timeline list, page by page |
+| 7 | Search and filter | Search title and content; filter by date range, moods, tags or category |
+| 8 | Streak tracking | Current streak, longest streak and missed days |
+| 9 | Theme customisation | Light and dark themes |
+| 10 | Dashboard analytics | Mood distribution, most frequent mood, most used tags, tag breakdown, word-count trends |
+| 11 | Security and privacy | Password or PIN protection for the journal |
+| 12 | Export | Export a date range of entries to PDF |
 
 ### Design decisions already made
 
@@ -103,7 +100,7 @@ take precedence over transitive versions. Restore is free of `NU1903` warnings a
 | .NET SDK 10.0 or later | Verify with `dotnet --version`. Developed against 10.0.302 |
 | .NET MAUI workloads | `android`, `ios`, `maccatalyst`, `maui-windows` |
 | Windows 10 build 19041+ | Required for the Windows target |
-| Visual Studio 2022 17.12+ or VS Code with C# Dev Kit | Optional — the CLI is sufficient |
+| Visual Studio 2022 17.12+ or VS Code with C# Dev Kit | Useful for debugging and breakpoints; `dotnet` alone can build and run the app |
 | Android SDK + emulator or device | Only if building the Android target |
 | A macOS build host | Only if building iOS or Mac Catalyst |
 
@@ -583,39 +580,6 @@ dotnet build Reflect/Reflect.csproj -f net10.0-windows10.0.19041.0
 
 ---
 
-## Roadmap
-
-Ordered roughly by dependency — earlier items unblock later ones.
-
-Done:
-
-1. ~~**`EntryService` implementation**~~ — CRUD with the one-per-day rule, tag
-   synchronisation, word counting, and parameterised search.
-2. ~~**Dependency injection wiring**~~ — MudBlazor, `IJournalDatabase` and services registered
-   in `MauiProgram`.
-3. ~~**Reference data service**~~ — moods, tags and categories exposed to the UI, with custom
-   tag creation.
-4. ~~**Entry editor**~~ — Markdown with live preview, mood picker enforcing the primary and
-   two-secondary rules, tag and category selection.
-5. ~~**Calendar view**~~ — month grid marking written days, with that month's entries beside it.
-6. ~~**Timeline and search UI**~~ — paginated cards with text search and date, mood, tag and
-   category filters, all resolved in SQL.
-7. ~~**Streak service**~~ — current streak, longest streak, missed days, with a streak counted
-   as alive until a full day passes unwritten.
-8. ~~**Analytics dashboard**~~ — mood distribution, frequent moods, tag usage, category
-   breakdown and word-count trends, date-range filterable.
-
-9. ~~**Security**~~ — PBKDF2 passphrase set-up and an unlock screen that replaces the whole app.
-10. ~~**PDF export**~~ — date-range export via QuestPDF.
-11. ~~**Theme persistence**~~ — the choice is stored in `AppSettings.Theme` and survives restarts.
-
-12. ~~**Extract a shared class library**~~ — `Reflect.Core` targets plain `net10.0`, holding
-    the domain free of any MAUI dependency.
-
-Nothing outstanding.
-
----
-
 ## Coursework Mapping
 
 Where each marking-scheme item is or will be satisfied. Kept current as work lands.
@@ -640,17 +604,3 @@ Where each marking-scheme item is or will be satisfied. Kept current as work lan
 | Error handling | 5 | `DuplicateEntryDateException`, validation at both layers, logging, UI fallbacks | Ongoing |
 | Version control | 5 | Conventional Commits, private repository | Ongoing |
 | User experience | 5 | MudBlazor, responsive grid, live preview, confirmation on delete | Ongoing |
-
----
-
-## Academic Integrity
-
-This repository contains coursework submitted for assessment at London Metropolitan
-University via Islington College. It is deliberately **private**.
-
-The university treats plagiarism and contract cheating as serious offences, and the penalties
-apply to **all parties involved** — including anyone whose work is copied. Please do not
-redistribute this code or make it public.
-
-Any external libraries, articles or sources used are credited in the commit history and in
-this README.
