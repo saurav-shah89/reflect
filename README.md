@@ -192,26 +192,3 @@ rebuild, or delete `bin` and `obj`.
 
 **"You cannot write an entry for a future date."** Working as intended - an entry records
 a day that's actually happened.
-
-## Coursework mapping
-
-| Marking item | Marks | Where |
-| --- | --- | --- |
-| Journal entry management | 5 | `Services/EntryService.cs`, `Components/Pages/Write.razor` |
-| Markdown writing | 5 | `Services/MarkdownRenderer.cs`, editor preview pane |
-| Mood tracking | 5 | `Models/Mood.cs`, `Data/SeedData.cs`, editor mood pickers |
-| Tagging system | 5 | `Models/Tag.cs`, `Services/ReferenceDataService.cs`, editor |
-| Calendar navigation | 5 | `Components/Pages/Calendar.razor` |
-| Paginated journal view | 5 | `Components/Pages/Journal.razor`, `Models/PagedResult.cs` |
-| Search and filter | 5 | `Components/Pages/Journal.razor`, `Models/EntryQuery.cs` |
-| Streak tracking | 5 | `Services/AnalyticsService.cs`, `Components/Pages/Dashboard.razor` |
-| Theme customisation | 5 | `MainLayout.razor`, `Components/Pages/Settings.razor` |
-| Dashboard analytics | 5 | `Services/AnalyticsService.cs`, `Components/Pages/Dashboard.razor` |
-| Security and privacy | 5 | `Services/SettingsService.cs`, `Components/Layout/LockScreen.razor` |
-| Export journals | 5 | `Services/PdfJournalExporter.cs`, `Components/Pages/Export.razor` |
-| Code readability | 5 | Consistent naming, small methods, comments where the reason isn't obvious |
-| Code efficiency | 5 | Indexed columns, stored `WordCount`, cached reference data, paged queries |
-| Code modularity | 5 | An interface per service, DI, domain split out into `Reflect.Core` |
-| Error handling | 5 | `DuplicateEntryDateException`, validation in the service and the UI, logging |
-| Version control | 5 | Git throughout, Conventional Commits, private repo |
-| User experience | 5 | Live preview, keyboard support, confirmation before delete, light/dark |
