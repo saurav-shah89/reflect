@@ -197,15 +197,18 @@
         }
     }
 
-    // Documents folder on Windows so the file is easy to find. Mobile doesn't
-    // let you write there, so it falls back to the app's own folder.
+    // Where the PDF gets written.
+    private const string ExportFolder = @"D:\Journal";
+
+    // There's no D: drive on the phone, and there might not be one on another
+    // PC either, so it falls back to the app's own folder rather than throwing.
     private static string ResolveExportDirectory()
     {
-        var documents = Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments);
+        var drive = Path.GetPathRoot(ExportFolder);
 
-        return string.IsNullOrWhiteSpace(documents)
-            ? Path.Combine(FileSystem.AppDataDirectory, "Exports")
-            : Path.Combine(documents, "Reflect");
+        return !string.IsNullOrEmpty(drive) && Directory.Exists(drive)
+            ? ExportFolder
+            : Path.Combine(FileSystem.AppDataDirectory, "Exports");
     }
 
     private async Task OpenLastExportAsync()
