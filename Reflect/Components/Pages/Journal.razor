@@ -52,7 +52,8 @@ else
                     </MudItem>
 
                     <MudItem xs="12" md="6">
-                        <MudSelect T="int"
+                        @* Nullable, or an unset filter shows as the id 0. *@
+                        <MudSelect T="int?"
                                    Label="Category"
                                    Value="_categoryId"
                                    ValueChanged="OnCategoryChanged"
@@ -60,7 +61,7 @@ else
                                    Clearable="true">
                             @foreach (var category in _categories)
                             {
-                                <MudSelectItem T="int" Value="@category.Id">@category.Name</MudSelectItem>
+                                <MudSelectItem T="int?" Value="@category.Id">@category.Name</MudSelectItem>
                             }
                         </MudSelect>
                     </MudItem>
@@ -212,7 +213,7 @@ else
 
     private string _searchText = string.Empty;
     private DateRange? _dateRange;
-    private int _categoryId;
+    private int? _categoryId;
     private IReadOnlyCollection<int> _moodIds = Array.Empty<int>();
     private IReadOnlyCollection<int> _tagIds = Array.Empty<int>();
 
@@ -230,7 +231,7 @@ else
 
     private int ActiveFilterCount =>
         (_dateRange is not null ? 1 : 0) +
-        (_categoryId > 0 ? 1 : 0) +
+        (_categoryId is > 0 ? 1 : 0) +
         (_moodIds.Count > 0 ? 1 : 0) +
         (_tagIds.Count > 0 ? 1 : 0);
 
@@ -268,7 +269,7 @@ else
                 SearchText = _searchText,
                 FromDate = _dateRange?.Start,
                 ToDate = _dateRange?.End,
-                CategoryId = _categoryId > 0 ? _categoryId : null,
+                CategoryId = _categoryId is > 0 ? _categoryId : null,
                 MoodIds = _moodIds,
                 TagIds = _tagIds
             };
@@ -300,7 +301,7 @@ else
         await SearchAsync(page: 1);
     }
 
-    private async Task OnCategoryChanged(int categoryId)
+    private async Task OnCategoryChanged(int? categoryId)
     {
         _categoryId = categoryId;
         await SearchAsync(page: 1);
@@ -330,7 +331,7 @@ else
     {
         _searchText = string.Empty;
         _dateRange = null;
-        _categoryId = 0;
+        _categoryId = null;
         _moodIds = Array.Empty<int>();
         _tagIds = Array.Empty<int>();
 
