@@ -95,8 +95,8 @@ Reflect/
 ├── Components/
 │   ├── Layout/     MainLayout, NavMenu, LockScreen
 │   ├── Pages/      Home, Write, Calendar, Journal, Dashboard, Export, Settings
-│   └── Shared/     ScreenHeader
-├── Theme/          LetterpressTheme
+│   └── Shared/     ScreenHeader, StatCard
+├── Theme/          AppTheme
 ├── wwwroot/        app.css, index.html
 └── MauiProgram.cs  service registration
 ```
