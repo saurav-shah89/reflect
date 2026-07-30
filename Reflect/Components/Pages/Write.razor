@@ -115,49 +115,61 @@ else
                 <MudCardContent>
                     <MudText Typo="Typo.h6" Class="mb-3">How was the day?</MudText>
 
-                    @* Nullable so that "nothing picked yet" shows as an empty box
-                       rather than the id 0. *@
-                    <MudSelect T="int?"
-                               Label="Primary mood"
-                               Value="_primaryMoodId"
-                               ValueChanged="OnPrimaryMoodChanged"
-                               Variant="Variant.Outlined"
-                               Required="true"
-                               Class="mb-3">
+                    @* Chips rather than a dropdown, so all the moods are visible at
+                       once. The value is int? because nothing is picked to start
+                       with, and 0 is a real-looking id. *@
+                    <MudText Typo="Typo.body2" Class="mb-1">Primary mood *</MudText>
+                    <MudChipSet T="int?"
+                                SelectionMode="SelectionMode.SingleSelection"
+                                SelectedValue="_primaryMoodId"
+                                SelectedValueChanged="OnPrimaryMoodChanged"
+                                SelectedColor="Color.Primary"
+                                Variant="Variant.Outlined"
+                                Size="Size.Small"
+                                Class="mb-4">
                         @foreach (var mood in _moods)
                         {
-                            <MudSelectItem T="int?" Value="@mood.Id">
-                                @mood.Name &middot; @mood.Category
-                            </MudSelectItem>
+                            <MudChip T="int?" Value="@mood.Id">
+                                <span class="mood-dot mr-2" style="@($"background:{MoodColour(mood)};")"></span>
+                                @mood.Name
+                            </MudChip>
                         }
-                    </MudSelect>
+                    </MudChipSet>
 
-                    <MudSelect T="int"
-                               Label="Secondary moods (up to 2)"
-                               MultiSelection="true"
-                               SelectedValues="_secondaryMoodIds"
-                               SelectedValuesChanged="OnSecondaryMoodsChanged"
-                               Variant="Variant.Outlined"
-                               MultiSelectionTextFunc="@(v => $"{v.Count} selected")"
-                               Class="mb-3">
+                    @* Once two are picked the rest are disabled, which is simpler
+                       than letting someone pick a third and then rejecting it. *@
+                    <MudText Typo="Typo.body2" Class="mb-1">Secondary moods (up to 2)</MudText>
+                    <MudChipSet T="int"
+                                SelectionMode="SelectionMode.MultiSelection"
+                                SelectedValues="_secondaryMoodIds"
+                                SelectedValuesChanged="OnSecondaryMoodsChanged"
+                                SelectedColor="Color.Primary"
+                                Variant="Variant.Outlined"
+                                Size="Size.Small"
+                                Class="mb-4">
                         @foreach (var mood in _moods.Where(m => m.Id != _primaryMoodId))
                         {
-                            <MudSelectItem T="int" Value="@mood.Id">
-                                @mood.Name &middot; @mood.Category
-                            </MudSelectItem>
+                            <MudChip T="int" Value="@mood.Id" Disabled="@IsSecondaryFull(mood.Id)">
+                                <span class="mood-dot mr-2" style="@($"background:{MoodColour(mood)};")"></span>
+                                @mood.Name
+                            </MudChip>
                         }
-                    </MudSelect>
+                    </MudChipSet>
 
-                    <MudSelect T="int?"
-                               Label="Category"
-                               @bind-Value="_categoryId"
-                               Variant="Variant.Outlined"
-                               Clearable="true">
+                    @* Toggle selection, so clicking the chosen category again clears
+                       it. The category is optional. *@
+                    <MudText Typo="Typo.body2" Class="mb-1">Category</MudText>
+                    <MudChipSet T="int?"
+                                SelectionMode="SelectionMode.ToggleSelection"
+                                @bind-SelectedValue="_categoryId"
+                                SelectedColor="Color.Primary"
+                                Variant="Variant.Outlined"
+                                Size="Size.Small">
                         @foreach (var category in _categories)
                         {
-                            <MudSelectItem T="int?" Value="@category.Id">@category.Name</MudSelectItem>
+                            <MudChip T="int?" Value="@category.Id" Text="@category.Name" />
                         }
-                    </MudSelect>
+                    </MudChipSet>
                 </MudCardContent>
             </MudCard>
 
@@ -505,4 +517,10 @@ else
                 .Count(token => token.Any(char.IsLetterOrDigit));
 
     private const int SuggestedTagCount = 12;
+
+    private static string MoodColour(Mood mood) => AppTheme.ColourFor(mood.Name, mood.Category);
+
+    // True once two secondary moods are picked and this one isn't one of them.
+    private bool IsSecondaryFull(int moodId) =>
+        _secondaryMoodIds.Count >= MaxSecondaryMoods && !_secondaryMoodIds.Contains(moodId);
 }
