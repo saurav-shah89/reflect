@@ -56,7 +56,7 @@ else
                             MaxDate="DateTime.Today"
                             Margin="Margin.Dense"
                             Style="max-width: 320px;" />
-        <MudText Typo="Typo.body2" Color="Color.Secondary">
+        <MudText Typo="Typo.body2" Class="mud-text-secondary">
             @_summary.EntryCount of @_summary.EligibleDays days written
         </MudText>
     </div>
@@ -78,7 +78,7 @@ else
                 <MudCard Style="height: 100%;">
                     <MudCardContent>
                         <MudText Typo="Typo.h6">Mood distribution</MudText>
-                        <MudText Typo="Typo.body2" Color="Color.Secondary" Class="mb-4">
+                        <MudText Typo="Typo.body2" Class="mud-text-secondary mb-4">
                             Primary mood by sentiment
                         </MudText>
 
@@ -86,7 +86,7 @@ else
                         {
                             <div class="d-flex align-center justify-space-between">
                                 <MudText Typo="Typo.body2">@share.Category</MudText>
-                                <MudText Typo="Typo.body2" Color="Color.Secondary">
+                                <MudText Typo="Typo.body2" Class="mud-text-secondary">
                                     @share.Count (@share.Percentage%)
                                 </MudText>
                             </div>
@@ -109,14 +109,14 @@ else
                                       style="@($"width:16px;height:16px;background:{AppTheme.ColourFor(top.Name, top.Category)};")"></span>
                                 <MudText Typo="Typo.h5">@top.Name</MudText>
                             </div>
-                            <MudText Typo="Typo.body2" Color="Color.Secondary">
+                            <MudText Typo="Typo.body2" Class="mud-text-secondary">
                                 @top.Count of @_summary.EntryCount days
                                 &middot; @(Math.Round(top.Count * 100.0 / _summary.EntryCount))%
                             </MudText>
                         }
                         else
                         {
-                            <MudText Typo="Typo.body2" Color="Color.Secondary" Class="mt-3">
+                            <MudText Typo="Typo.body2" Class="mud-text-secondary mt-3">
                                 No moods recorded in range.
                             </MudText>
                         }
@@ -128,13 +128,13 @@ else
         <MudCard Class="mb-4">
             <MudCardContent>
                 <MudText Typo="Typo.h6">Word-count trend</MudText>
-                <MudText Typo="Typo.body2" Color="Color.Secondary" Class="mb-2">
+                <MudText Typo="Typo.body2" Class="mud-text-secondary mb-2">
                     Average words per entry, @GroupingLabel &middot; @_summary.TotalWords words in total
                 </MudText>
 
                 @if (_summary.WordCountTrend.Count < 2)
                 {
-                    <MudText Typo="Typo.body2" Color="Color.Secondary">
+                    <MudText Typo="Typo.body2" Class="mud-text-secondary">
                         Not enough entries in this range to show a trend yet.
                     </MudText>
                 }
@@ -159,7 +159,7 @@ else
 
                         @if (_summary.TopTags.Count == 0)
                         {
-                            <MudText Typo="Typo.body2" Color="Color.Secondary">
+                            <MudText Typo="Typo.body2" Class="mud-text-secondary">
                                 No tags used in this range.
                             </MudText>
                         }
@@ -171,7 +171,7 @@ else
                             {
                                 <div class="d-flex align-center justify-space-between">
                                     <MudText Typo="Typo.body2">@tag.Name</MudText>
-                                    <MudText Typo="Typo.body2" Color="Color.Secondary">@tag.Count</MudText>
+                                    <MudText Typo="Typo.body2" Class="mud-text-secondary">@tag.Count</MudText>
                                 </div>
                                 <MudProgressLinear Value="@Percent(tag.Count, mostUsed)"
                                                    Color="Color.Primary" Class="mb-3" />
@@ -188,7 +188,7 @@ else
 
                         @if (_summary.CategoryBreakdown.Count == 0)
                         {
-                            <MudText Typo="Typo.body2" Color="Color.Secondary">
+                            <MudText Typo="Typo.body2" Class="mud-text-secondary">
                                 No categories in this range.
                             </MudText>
                         }
@@ -200,7 +200,7 @@ else
                             {
                                 <div class="d-flex align-center justify-space-between">
                                     <MudText Typo="Typo.body2">@category.Name</MudText>
-                                    <MudText Typo="Typo.body2" Color="Color.Secondary">@category.Count</MudText>
+                                    <MudText Typo="Typo.body2" Class="mud-text-secondary">@category.Count</MudText>
                                 </div>
                                 <MudProgressLinear Value="@Percent(category.Count, biggest)"
                                                    Color="Color.Primary" Class="mb-3" />
@@ -216,7 +216,7 @@ else
             <MudCard>
                 <MudCardContent>
                     <MudText Typo="Typo.h6">Missed days</MudText>
-                    <MudText Typo="Typo.body2" Color="Color.Secondary" Class="mb-3">
+                    <MudText Typo="Typo.body2" Class="mud-text-secondary mb-3">
                         @_summary.MissedDays.Count of @_summary.EligibleDays days have no entry
                     </MudText>
 
@@ -232,7 +232,7 @@ else
 
                     @if (_summary.MissedDays.Count > MissedDaysShown)
                     {
-                        <MudText Typo="Typo.caption" Color="Color.Secondary" Class="d-block mt-3">
+                        <MudText Typo="Typo.caption" Class="mud-text-secondary d-block mt-3">
                             Showing the @MissedDaysShown most recent.
                         </MudText>
                     }

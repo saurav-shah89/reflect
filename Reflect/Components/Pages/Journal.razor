@@ -109,7 +109,7 @@ else
     </MudExpansionPanels>
 
     <div class="d-flex align-center justify-space-between mb-2" style="width: 100%;">
-        <MudText Typo="Typo.body2" Color="Color.Secondary">
+        <MudText Typo="Typo.body2" Class="mud-text-secondary">
             @if (_isSearching)
             {
                 <span>Searching…</span>
@@ -123,7 +123,7 @@ else
         @* The select's own floating label overlapped the result count on this
            row, so the caption sits beside it instead. *@
         <div class="d-flex align-center gap-2">
-            <MudText Typo="Typo.body2" Color="Color.Secondary">Per page</MudText>
+            <MudText Typo="Typo.body2" Class="mud-text-secondary">Per page</MudText>
             <MudSelect T="int" Value="_pageSize" ValueChanged="OnPageSizeChanged"
                        Dense="true" Variant="Variant.Text"
                        aria-label="Results per page"
@@ -156,7 +156,7 @@ else
                 <MudCardContent>
                     <div class="d-flex align-baseline justify-space-between gap-3">
                         <MudText Typo="Typo.h6">@entry.Title</MudText>
-                        <MudText Typo="Typo.caption" Color="Color.Secondary" Style="white-space: nowrap;">
+                        <MudText Typo="Typo.caption" Style="white-space: nowrap;" Class="mud-text-secondary">
                             @entry.EntryDate.ToString("ddd d MMM yyyy")
                         </MudText>
                     </div>
@@ -185,7 +185,7 @@ else
                     </div>
 
                     <MudText Typo="Typo.body2" Class="entry-snippet">@Snippet(entry.Content)</MudText>
-                    <MudText Typo="Typo.caption" Color="Color.Secondary" Class="d-block mt-2">
+                    <MudText Typo="Typo.caption" Class="mud-text-secondary d-block mt-2">
                         @entry.WordCount words
                     </MudText>
                 </MudCardContent>

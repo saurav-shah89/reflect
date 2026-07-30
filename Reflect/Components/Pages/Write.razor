@@ -23,7 +23,7 @@ else
     <ScreenHeader Title="@(_isExisting ? _date.ToString("dddd") : "Today")"
                   Subtitle="@_date.ToString("d MMMM yyyy")">
         <Actions>
-            <MudText Typo="Typo.body2" Color="Color.Secondary">@_liveWordCount words</MudText>
+            <MudText Typo="Typo.body2" Class="mud-text-secondary">@_liveWordCount words</MudText>
 
             <MudIconButton Icon="@Icons.Material.Filled.ChevronLeft" Size="Size.Small"
                            OnClick="@(() => GoToDate(_date.AddDays(-1)))"
@@ -66,7 +66,7 @@ else
                           Immediate="true"
                           Class="mb-2" />
 
-            <MudText Typo="Typo.caption" Color="Color.Secondary" Class="d-block mb-4">
+            <MudText Typo="Typo.caption" Class="mud-text-secondary d-block mb-4">
                 @if (_isExisting)
                 {
                     <span>
@@ -96,7 +96,7 @@ else
                     <MudPaper Outlined="true" Class="pa-4 markdown-preview">
                         @if (string.IsNullOrWhiteSpace(_content))
                         {
-                            <MudText Typo="Typo.body2" Color="Color.Secondary">
+                            <MudText Typo="Typo.body2" Class="mud-text-secondary">
                                 Nothing to preview yet.
                             </MudText>
                         }
@@ -176,7 +176,7 @@ else
                     }
                     else
                     {
-                        <MudText Typo="Typo.body2" Color="Color.Secondary" Class="mb-3">
+                        <MudText Typo="Typo.body2" Class="mud-text-secondary mb-3">
                             No tags yet.
                         </MudText>
                     }
@@ -196,7 +196,7 @@ else
                                        aria-label="Add tag" />
                     </div>
 
-                    <MudText Typo="Typo.body2" Color="Color.Secondary" Class="mb-2">Suggested</MudText>
+                    <MudText Typo="Typo.body2" Class="mud-text-secondary mb-2">Suggested</MudText>
                     <div class="d-flex flex-wrap gap-1">
                         @foreach (var tag in _tags.Where(t => !_selectedTagIds.Contains(t.Id)).Take(SuggestedTagCount))
                         {

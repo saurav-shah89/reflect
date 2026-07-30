@@ -23,7 +23,7 @@ else
         <MudCard Class="mb-6">
             <MudCardContent>
                 <MudText Typo="Typo.h6">Security</MudText>
-                <MudText Typo="Typo.body2" Color="Color.Secondary" Class="mb-4">
+                <MudText Typo="Typo.body2" Class="mud-text-secondary mb-4">
                     @(_isLockEnabled
                         ? "A passphrase is required each time the app opens"
                         : "This journal opens without a passphrase")
@@ -122,7 +122,7 @@ else
         <MudCard>
             <MudCardContent>
                 <MudText Typo="Typo.h6">Appearance</MudText>
-                <MudText Typo="Typo.body2" Color="Color.Secondary" Class="mb-4">
+                <MudText Typo="Typo.body2" Class="mud-text-secondary mb-4">
                     Remembered between sessions
                 </MudText>
 
@@ -133,7 +133,7 @@ else
                     <MudSelectItem T="string" Value="@("dark")">Dark</MudSelectItem>
                 </MudSelect>
 
-                <MudText Typo="Typo.caption" Color="Color.Secondary" Class="d-block mt-3">
+                <MudText Typo="Typo.caption" Class="mud-text-secondary d-block mt-3">
                     It can also be flipped from the button in the top bar.
                 </MudText>
             </MudCardContent>

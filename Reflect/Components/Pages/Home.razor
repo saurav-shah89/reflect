@@ -24,14 +24,14 @@ else
             @if (_todaysEntry is null)
             {
                 <MudText Typo="Typo.h6">Nothing written yet</MudText>
-                <MudText Typo="Typo.body2" Color="Color.Secondary">
+                <MudText Typo="Typo.body2" Class="mud-text-secondary">
                     You have not made an entry for today.
                 </MudText>
             }
             else
             {
                 <MudText Typo="Typo.h6">@_todaysEntry.Title</MudText>
-                <MudText Typo="Typo.body2" Color="Color.Secondary">
+                <MudText Typo="Typo.body2" Class="mud-text-secondary">
                     @_todaysEntry.WordCount words &middot;
                     last updated @_todaysEntry.UpdatedAt.ToString("HH:mm")
                 </MudText>
@@ -65,8 +65,8 @@ else
                     <MudListItem T="string" OnClick="@(() => OpenDate(entry.EntryDate))">
                         <div class="d-flex align-center justify-space-between gap-3">
                             <MudText Typo="Typo.body1">@entry.Title</MudText>
-                            <MudText Typo="Typo.caption" Color="Color.Secondary"
-                                     Style="white-space: nowrap;">
+                            <MudText Typo="Typo.caption"
+                                     Style="white-space: nowrap;" Class="mud-text-secondary">
                                 @entry.EntryDate.ToString("d MMM") &middot; @entry.WordCount words
                             </MudText>
                         </div>
@@ -76,7 +76,7 @@ else
         </MudPaper>
     }
 
-    <MudText Typo="Typo.body2" Color="Color.Secondary" Class="mt-4">
+    <MudText Typo="Typo.body2" Class="mud-text-secondary mt-4">
         @_totalEntries @(_totalEntries == 1 ? "entry" : "entries") in your journal
     </MudText>
 }

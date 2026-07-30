@@ -14,7 +14,7 @@
     <MudCard Class="mb-6">
         <MudCardContent>
             <MudText Typo="Typo.h6">Export journal to PDF</MudText>
-            <MudText Typo="Typo.body2" Color="Color.Secondary" Class="mb-4">
+            <MudText Typo="Typo.body2" Class="mud-text-secondary mb-4">
                 A printable copy of your entries within a date range
             </MudText>
 
@@ -62,7 +62,7 @@
 
             @if (_entriesInRange == 0 && !_isCounting)
             {
-                <MudText Typo="Typo.caption" Color="Color.Secondary">
+                <MudText Typo="Typo.caption" Class="mud-text-secondary">
                     Nothing in this range to export.
                 </MudText>
             }

@@ -30,7 +30,7 @@ else
                 <div class="d-flex align-center justify-space-between mb-4">
                     <MudText Typo="Typo.h6">@_month.ToString("MMMM yyyy")</MudText>
                     <div class="d-flex align-center gap-2">
-                        <MudText Typo="Typo.caption" Color="Color.Secondary">
+                        <MudText Typo="Typo.caption" Class="mud-text-secondary">
                             @_monthEntries.Count @(_monthEntries.Count == 1 ? "entry" : "entries")
                         </MudText>
                         <MudIconButton Icon="@Icons.Material.Filled.ChevronLeft" Size="Size.Small"
@@ -46,7 +46,7 @@ else
                 <div class="calendar-grid mb-2">
                     @foreach (var day in DayNames)
                     {
-                        <MudText Typo="Typo.caption" Color="Color.Secondary" Align="Align.Center">@day</MudText>
+                        <MudText Typo="Typo.caption" Align="Align.Center" Class="mud-text-secondary">@day</MudText>
                     }
                 </div>
 
@@ -98,7 +98,7 @@ else
                 </MudText>
             </MudPaper>
 
-            <MudText Typo="Typo.caption" Color="Color.Secondary" Class="d-block mt-3">
+            <MudText Typo="Typo.caption" Class="mud-text-secondary d-block mt-3">
                 Future days are disabled - an entry records a day that has happened.
             </MudText>
         </MudItem>
@@ -138,12 +138,12 @@ else
                             <div class="d-flex align-center gap-2">
                                 <span class="mood-dot"
                                       style="@($"background:{MoodColour(entry.PrimaryMoodId)};")"></span>
-                                <MudText Typo="Typo.caption" Color="Color.Secondary">
+                                <MudText Typo="Typo.caption" Class="mud-text-secondary">
                                     @entry.EntryDate.ToString("ddd d MMM")
                                 </MudText>
                             </div>
                             <MudText Typo="Typo.body1" Class="mt-1">@entry.Title</MudText>
-                            <MudText Typo="Typo.caption" Color="Color.Secondary" Class="d-block">
+                            <MudText Typo="Typo.caption" Class="mud-text-secondary d-block">
                                 @MoodName(entry.PrimaryMoodId) &middot; @entry.WordCount words
                             </MudText>
                             @if (!string.IsNullOrWhiteSpace(entry.Content))
@@ -163,7 +163,7 @@ else
 @code {
     private const int SnippetLength = 110;
 
-    // Weeks start on Sunday, following the design's own grid.
+    // Weeks start on Sunday, which is what the grid below assumes.
     private static readonly string[] DayNames = { "Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat" };
 
     private static readonly MoodCategory[] MoodCategories =

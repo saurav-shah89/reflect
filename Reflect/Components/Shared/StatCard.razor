@@ -1,12 +1,12 @@
 @* One of the number boxes used on the calendar and dashboard. *@
 <MudPaper Outlined="true" Class="pa-3" Style="height: 100%;">
-    <MudText Typo="Typo.caption" Color="Color.Secondary">@Label</MudText>
+    <MudText Typo="Typo.caption" Class="mud-text-secondary">@Label</MudText>
     <MudText Typo="Typo.h5" Color="@(Highlight && Value > 0 ? Color.Primary : Color.Default)">
         @Value
     </MudText>
     @if (!string.IsNullOrWhiteSpace(Unit))
     {
-        <MudText Typo="Typo.caption" Color="Color.Secondary">@Unit</MudText>
+        <MudText Typo="Typo.caption" Class="mud-text-secondary">@Unit</MudText>
     }
 </MudPaper>
 
