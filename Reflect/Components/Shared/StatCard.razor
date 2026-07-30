@@ -1,0 +1,22 @@
+@* One of the number boxes used on the calendar and dashboard. *@
+<MudPaper Outlined="true" Class="pa-3" Style="height: 100%;">
+    <MudText Typo="Typo.caption" Color="Color.Secondary">@Label</MudText>
+    <MudText Typo="Typo.h5" Color="@(Highlight && Value > 0 ? Color.Primary : Color.Default)">
+        @Value
+    </MudText>
+    @if (!string.IsNullOrWhiteSpace(Unit))
+    {
+        <MudText Typo="Typo.caption" Color="Color.Secondary">@Unit</MudText>
+    }
+</MudPaper>
+
+@code {
+    [Parameter, EditorRequired] public string Label { get; set; } = string.Empty;
+
+    [Parameter, EditorRequired] public int Value { get; set; }
+
+    [Parameter] public string? Unit { get; set; }
+
+    // Colours the number when it isn't zero, used for the streak.
+    [Parameter] public bool Highlight { get; set; }
+}

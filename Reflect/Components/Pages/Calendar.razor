@@ -12,8 +12,7 @@
               Subtitle="A month at a glance - pick any day to open or start its entry">
     <Actions>
         <MudButton Variant="Variant.Outlined" Size="Size.Small"
-                   OnClick="@(() => GoToMonthAsync(DateTime.Today))"
-                   Style="border-radius: 0;">Today</MudButton>
+                   OnClick="@(() => GoToMonthAsync(DateTime.Today))">Today</MudButton>
     </Actions>
 </ScreenHeader>
 
@@ -25,39 +24,33 @@ else
 {
     <MudGrid>
         <MudItem xs="12" md="7">
-            @* A hand-built grid rather than a date picker: each day carries the
-               colour of that day's primary mood, which a picker cannot express. *@
-            <div class="lp-card pa-5">
-                <div class="d-flex align-center justify-space-between mb-5">
-                    <div class="lp-display" style="font-size: 23px; font-weight: 500;">
-                        @_month.ToString("MMMM yyyy")
-                    </div>
-                    <div class="d-flex align-center" style="gap: 8px;">
-                        <span class="lp-label" style="margin-right: 6px;">
+            @* Built by hand instead of using a date picker, because each day has
+               to show the colour of that day's mood. *@
+            <MudPaper Outlined="true" Class="pa-4">
+                <div class="d-flex align-center justify-space-between mb-4">
+                    <MudText Typo="Typo.h6">@_month.ToString("MMMM yyyy")</MudText>
+                    <div class="d-flex align-center gap-2">
+                        <MudText Typo="Typo.caption" Color="Color.Secondary">
                             @_monthEntries.Count @(_monthEntries.Count == 1 ? "entry" : "entries")
-                        </span>
-                        <MudIconButton Icon="@Icons.Material.Filled.ChevronLeft"
-                                       Variant="Variant.Outlined" Size="Size.Small"
+                        </MudText>
+                        <MudIconButton Icon="@Icons.Material.Filled.ChevronLeft" Size="Size.Small"
                                        OnClick="@(() => GoToMonthAsync(_month.AddMonths(-1)))"
-                                       aria-label="Previous month"
-                                       Style="border-radius: 0;" />
-                        <MudIconButton Icon="@Icons.Material.Filled.ChevronRight"
-                                       Variant="Variant.Outlined" Size="Size.Small"
+                                       aria-label="Previous month" />
+                        <MudIconButton Icon="@Icons.Material.Filled.ChevronRight" Size="Size.Small"
                                        Disabled="@(!CanGoForward)"
                                        OnClick="@(() => GoToMonthAsync(_month.AddMonths(1)))"
-                                       aria-label="Next month"
-                                       Style="border-radius: 0;" />
+                                       aria-label="Next month" />
                     </div>
                 </div>
 
-                <div style="display: grid; grid-template-columns: repeat(7, 1fr); gap: 8px; margin-bottom: 8px;">
+                <div class="calendar-grid mb-2">
                     @foreach (var day in DayNames)
                     {
-                        <div class="lp-label" style="text-align: center; letter-spacing: 0.08em;">@day</div>
+                        <MudText Typo="Typo.caption" Color="Color.Secondary" Align="Align.Center">@day</MudText>
                     }
                 </div>
 
-                <div style="display: grid; grid-template-columns: repeat(7, 1fr); gap: 8px;">
+                <div class="calendar-grid">
                     @foreach (var cell in _cells)
                     {
                         @if (cell is null)
@@ -68,62 +61,62 @@ else
                         {
                             var date = cell.Value;
                             var entry = EntryOn(date);
-                            var isToday = date == DateTime.Today;
                             var isFuture = date > DateTime.Today;
-                            var inStreak = _streakDays.Contains(date);
                             var colour = entry is null ? null : MoodColour(entry.PrimaryMoodId);
 
                             <button type="button"
+                                    class="@DayCellClass(date)"
                                     disabled="@isFuture"
                                     @onclick="@(() => OpenDate(date))"
-                                    title="@DayTitle(date, entry)"
-                                    style="@DayCellStyle(isToday, inStreak, isFuture)">
-                                <span style="@($"font-size:14px;font-weight:{(isToday ? 700 : 600)};{(isToday ? "color:var(--lp-accent);" : string.Empty)}")">
-                                    @date.Day
-                                </span>
+                                    title="@DayTitle(date, entry)">
+                                <span>@date.Day</span>
 
                                 @if (colour is not null)
                                 {
-                                    @* Square pip top-right and a rule beneath, both in the
-                                       day's mood colour, so the month reads as a mood chart. *@
-                                    <span class="lp-swatch"
-                                          style="@($"position:absolute;top:8px;right:8px;background:{colour};")"></span>
-                                    <span class="lp-day-mark" style="@($"background:{colour};")"></span>
+                                    @* A line in the mood's colour under the number, so the
+                                       whole month reads as a mood chart. *@
+                                    <span class="day-mark" style="@($"background:{colour};")"></span>
                                 }
                             </button>
                         }
                     }
                 </div>
-            </div>
+            </MudPaper>
 
-            <div class="lp-card pa-3 mt-4 d-flex flex-wrap align-center" style="gap: 16px;">
-                <span class="lp-label" style="color: var(--lp-ink);">Legend</span>
+            <MudPaper Outlined="true" Class="pa-3 mt-4 d-flex flex-wrap align-center gap-4">
+                <MudText Typo="Typo.caption"><strong>Legend</strong></MudText>
                 @foreach (var group in MoodCategories)
                 {
-                    <span class="lp-label d-inline-flex align-center" style="gap: 6px;">
-                        <span class="lp-swatch" style="@($"background:{LetterpressTheme.ColourFor(group)};")"></span>
+                    <MudText Typo="Typo.caption" Class="d-inline-flex align-center gap-2">
+                        <span class="mood-dot" style="@($"background:{AppTheme.ColourFor(group)};")"></span>
                         @group
-                    </span>
+                    </MudText>
                 }
-                <span class="lp-label d-inline-flex align-center" style="gap: 6px;">
-                    <span style="width: 12px; height: 12px; border: 1.5px solid var(--lp-accent);"></span>
-                    Today / streak
-                </span>
-            </div>
+                <MudText Typo="Typo.caption" Class="d-inline-flex align-center gap-2">
+                    <span class="mood-dot" style="border: 2px solid var(--mud-palette-primary);"></span>
+                    Today
+                </MudText>
+            </MudPaper>
 
-            <div class="lp-label mt-3">
-                Future days are unavailable - an entry records a day that has happened.
-            </div>
+            <MudText Typo="Typo.caption" Color="Color.Secondary" Class="d-block mt-3">
+                Future days are disabled - an entry records a day that has happened.
+            </MudText>
         </MudItem>
 
         <MudItem xs="12" md="5">
-            <div class="d-flex flex-wrap mb-6" style="gap: 16px;">
-                @Figure("Current streak", _streaks.CurrentStreak, "days")
-                @Figure("Longest streak", _streaks.LongestStreak, "days")
-                @Figure("Total entries", _streaks.TotalEntries, null)
-            </div>
+            <MudGrid Spacing="2" Class="mb-4">
+                <MudItem xs="4">
+                    <StatCard Label="Current streak" Value="_streaks.CurrentStreak" Unit="days" Highlight="true" />
+                </MudItem>
+                <MudItem xs="4">
+                    <StatCard Label="Longest streak" Value="_streaks.LongestStreak" Unit="days" />
+                </MudItem>
+                <MudItem xs="4">
+                    <StatCard Label="Total entries" Value="_streaks.TotalEntries" />
+                </MudItem>
+            </MudGrid>
 
-            <div class="lp-label mb-3">@_month.ToString("MMMM") at a glance</div>
+            <MudText Typo="Typo.h6" Class="mb-3">@_month.ToString("MMMM") at a glance</MudText>
 
             @if (_isLoading)
             {
@@ -137,27 +130,31 @@ else
             }
             else
             {
-                <div class="lp-stagger">
-                    @foreach (var entry in _monthEntries.OrderByDescending(e => e.EntryDate))
-                    {
-                        <div class="lp-block-light mb-4" style="cursor: pointer;"
+                @foreach (var entry in _monthEntries.OrderByDescending(e => e.EntryDate))
+                {
+                    <MudCard Outlined="true" Class="mb-3 entry-card"
                              @onclick="@(() => OpenDate(entry.EntryDate))">
-                            <div class="d-flex align-center" style="gap: 8px;">
-                                <span class="lp-swatch"
+                        <MudCardContent>
+                            <div class="d-flex align-center gap-2">
+                                <span class="mood-dot"
                                       style="@($"background:{MoodColour(entry.PrimaryMoodId)};")"></span>
-                                <span class="lp-label">@entry.EntryDate.ToString("ddd d MMM")</span>
+                                <MudText Typo="Typo.caption" Color="Color.Secondary">
+                                    @entry.EntryDate.ToString("ddd d MMM")
+                                </MudText>
                             </div>
-                            <MudText Typo="Typo.h6" Class="mt-1">@entry.Title</MudText>
-                            <div class="lp-label mt-1" style="letter-spacing: 0.1em;">
+                            <MudText Typo="Typo.body1" Class="mt-1">@entry.Title</MudText>
+                            <MudText Typo="Typo.caption" Color="Color.Secondary" Class="d-block">
                                 @MoodName(entry.PrimaryMoodId) &middot; @entry.WordCount words
-                            </div>
+                            </MudText>
                             @if (!string.IsNullOrWhiteSpace(entry.Content))
                             {
-                                <div class="entry-snippet mt-2">@Snippet(entry.Content)</div>
+                                <MudText Typo="Typo.body2" Class="entry-snippet mt-2">
+                                    @Snippet(entry.Content)
+                                </MudText>
                             }
-                        </div>
-                    }
-                </div>
+                        </MudCardContent>
+                    </MudCard>
+                }
             }
         </MudItem>
     </MudGrid>
@@ -286,20 +283,16 @@ else
         Navigation.NavigateTo($"/write/{date:yyyy-MM-dd}");
     }
 
-    // Red outline for today, a fainter one for streak days, thin grey for the
-    // rest. Future days are dimmed instead of hidden so the month keeps its
-    // shape.
-    private static string DayCellStyle(bool isToday, bool inStreak, bool isFuture)
+    // Today gets a thicker border and the days in the current streak get a
+    // coloured one. The rest of the styling is in app.css.
+    private string DayCellClass(DateTime date)
     {
-        var border = isToday
-            ? "var(--lp-accent)"
-            : inStreak ? "color-mix(in srgb, var(--lp-accent) 45%, transparent)" : "var(--lp-rule)";
+        if (date == DateTime.Today)
+        {
+            return "calendar-day today";
+        }
 
-        return "aspect-ratio:1/1;display:flex;flex-direction:column;align-items:flex-start;" +
-               "justify-content:space-between;padding:8px;position:relative;font-family:inherit;" +
-               "background:transparent;border-radius:0;" +
-               $"border:1px solid {border};" +
-               $"cursor:{(isFuture ? "default" : "pointer")};opacity:{(isFuture ? "0.35" : "1")};";
+        return _streakDays.Contains(date) ? "calendar-day in-streak" : "calendar-day";
     }
 
     private string DayTitle(DateTime date, JournalEntry? entry) =>
@@ -309,47 +302,11 @@ else
 
     private string MoodColour(int moodId) =>
         _moodLookup.TryGetValue(moodId, out var mood)
-            ? LetterpressTheme.ColourFor(mood.Name, mood.Category)
-            : LetterpressTheme.NeutralColour;
+            ? AppTheme.ColourFor(mood.Name, mood.Category)
+            : AppTheme.NeutralColour;
 
     private string MoodName(int moodId) =>
         _moodLookup.TryGetValue(moodId, out var mood) ? mood.Name : "Unknown mood";
-
-    // A label over a display-serif figure, as the design sets its statistics.
-    private RenderFragment Figure(string label, int value, string? unit) => builder =>
-    {
-        builder.OpenElement(0, "div");
-        builder.AddAttribute(1, "class", "lp-block");
-        builder.AddAttribute(2, "style", "flex: 1 1 140px;");
-
-        builder.OpenElement(3, "div");
-        builder.AddAttribute(4, "class", "lp-label");
-        builder.AddAttribute(5, "style", "margin-bottom: 10px;");
-        builder.AddContent(6, label);
-        builder.CloseElement();
-
-        builder.OpenElement(7, "div");
-        builder.AddAttribute(8, "class", "d-flex align-baseline");
-        builder.AddAttribute(9, "style", "gap: 7px;");
-
-        builder.OpenElement(10, "span");
-        builder.AddAttribute(11, "class", "lp-figure");
-        builder.AddAttribute(12, "style", "font-size: 40px;");
-        builder.AddContent(13, value);
-        builder.CloseElement();
-
-        if (unit is not null)
-        {
-            builder.OpenElement(14, "span");
-            builder.AddAttribute(15, "class", "lp-label");
-            builder.AddAttribute(16, "style", "font-size: 0.55rem;");
-            builder.AddContent(17, unit);
-            builder.CloseElement();
-        }
-
-        builder.CloseElement();
-        builder.CloseElement();
-    };
 
     // Strips the Markdown so the preview line doesn't show ** and # etc.
     private string Snippet(string content)

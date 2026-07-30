@@ -1,5 +1,4 @@
 @page "/dashboard"
-@using System.Globalization
 @inject IAnalyticsService Analytics
 @inject NavigationManager Navigation
 @inject ILogger<Dashboard> Logger
@@ -12,8 +11,7 @@
         {
             <MudButton Variant="@(_activePreset == preset.Label ? Variant.Filled : Variant.Outlined)"
                        Color="Color.Primary" Size="Size.Small"
-                       OnClick="@(() => ApplyPresetAsync(preset.Label, preset.Days))"
-                       Style="border-radius: 0;">@preset.Label</MudButton>
+                       OnClick="@(() => ApplyPresetAsync(preset.Label, preset.Days))">@preset.Label</MudButton>
         }
     </Actions>
 </ScreenHeader>
@@ -24,33 +22,43 @@
 }
 else
 {
-    @* Streaks describe the whole journal, not the selected window, so they sit
-       above the range control rather than under it. *@
-    <div class="lp-stat-row mb-8">
-        @Figure("Current streak", _streaks.CurrentStreak, "days", true)
-        @Figure("Longest streak", _streaks.LongestStreak, "days", false)
-        @Figure("Missed days", _summary.MissedDays.Count, "in range", false)
-        @Figure("Average length", (int)Math.Round(_summary.AverageWords), "words", false)
-    </div>
+    @* The streaks are for the whole journal, not the selected range, so they go
+       above the date picker rather than under it. *@
+    <MudGrid Spacing="2" Class="mb-4">
+        <MudItem xs="6" md="3">
+            <StatCard Label="Current streak" Value="_streaks.CurrentStreak" Unit="days" Highlight="true" />
+        </MudItem>
+        <MudItem xs="6" md="3">
+            <StatCard Label="Longest streak" Value="_streaks.LongestStreak" Unit="days" />
+        </MudItem>
+        <MudItem xs="6" md="3">
+            <StatCard Label="Missed days" Value="_summary.MissedDays.Count" Unit="in range" />
+        </MudItem>
+        <MudItem xs="6" md="3">
+            <StatCard Label="Average length" Value="@((int)Math.Round(_summary.AverageWords))" Unit="words" />
+        </MudItem>
+    </MudGrid>
 
     @if (_streaks.StreakAtRisk)
     {
-        <MudAlert Severity="Severity.Warning" Class="mb-6" Style="border-radius: 0;"
+        <MudAlert Severity="Severity.Warning" Class="mb-4"
                   Icon="@Icons.Material.Filled.LocalFireDepartment">
             Your @_streaks.CurrentStreak-day streak is still alive, but today is not written yet.
             <MudButton Variant="Variant.Text" Size="Size.Small" Href="/write">Write today's entry</MudButton>
         </MudAlert>
     }
 
-    <div class="lp-block-light mb-8 d-flex flex-wrap align-center" style="gap: 14px;">
-        <span class="lp-label">Range</span>
-        <MudDateRangePicker DateRange="_dateRange"
+    <div class="d-flex flex-wrap align-center gap-4 mb-6">
+        <MudDateRangePicker Label="Range"
+                            DateRange="_dateRange"
                             DateRangeChanged="OnRangeChanged"
                             Variant="Variant.Outlined"
                             MaxDate="DateTime.Today"
                             Margin="Margin.Dense"
-                            Style="max-width: 320px; border-radius: 0;" />
-        <span class="lp-label">@_summary.EntryCount of @_summary.EligibleDays days written</span>
+                            Style="max-width: 320px;" />
+        <MudText Typo="Typo.body2" Color="Color.Secondary">
+            @_summary.EntryCount of @_summary.EligibleDays days written
+        </MudText>
     </div>
 
     @if (_isLoading)
@@ -59,134 +67,177 @@ else
     }
     else if (_summary.EntryCount == 0)
     {
-        <MudAlert Severity="Severity.Normal" Variant="Variant.Outlined" Style="border-radius: 0;">
+        <MudAlert Severity="Severity.Normal" Variant="Variant.Outlined">
             No entries in this range, so there is nothing to chart yet.
         </MudAlert>
     }
     else
     {
-        <div class="lp-panel-pair mb-8">
+        <MudGrid Class="mb-2">
+            <MudItem xs="12" md="6">
+                <MudCard Style="height: 100%;">
+                    <MudCardContent>
+                        <MudText Typo="Typo.h6">Mood distribution</MudText>
+                        <MudText Typo="Typo.body2" Color="Color.Secondary" Class="mb-4">
+                            Primary mood by sentiment
+                        </MudText>
 
-            <section class="lp-block">
-                <div class="lp-label mb-1">Mood distribution</div>
-                <div class="lp-label mb-4" style="letter-spacing: 0.04em;">Primary mood by sentiment</div>
+                        @foreach (var share in _summary.MoodDistribution)
+                        {
+                            <div class="d-flex align-center justify-space-between">
+                                <MudText Typo="Typo.body2">@share.Category</MudText>
+                                <MudText Typo="Typo.body2" Color="Color.Secondary">
+                                    @share.Count (@share.Percentage%)
+                                </MudText>
+                            </div>
+                            <MudProgressLinear Value="@share.Percentage" Size="Size.Medium" Class="mb-3"
+                                               Color="@CategoryColour(share.Category)" />
+                        }
+                    </MudCardContent>
+                </MudCard>
+            </MudItem>
 
-                @* A single ruled bar filled in ink, half-tone and void rather than
-                   in colour. The letterpress language has no process colours, so
-                   proportion is carried by tone. *@
-                <div class="lp-tonebar mb-4">
-                    @foreach (var share in _summary.MoodDistribution)
-                    {
-                        <div style="@($"width:{share.Percentage}%;{ToneFill(share.Category)}")"
-                             title="@($"{share.Category}: {share.Count} ({share.Percentage}%)")"></div>
-                    }
-                </div>
+            <MudItem xs="12" md="6">
+                <MudCard Style="height: 100%;">
+                    <MudCardContent>
+                        <MudText Typo="Typo.h6">Most frequent mood</MudText>
 
-                @foreach (var share in _summary.MoodDistribution)
+                        @if (_summary.MostFrequentMood is { } top)
+                        {
+                            <div class="d-flex align-center gap-2 my-3">
+                                <span class="mood-dot"
+                                      style="@($"width:16px;height:16px;background:{AppTheme.ColourFor(top.Name, top.Category)};")"></span>
+                                <MudText Typo="Typo.h5">@top.Name</MudText>
+                            </div>
+                            <MudText Typo="Typo.body2" Color="Color.Secondary">
+                                @top.Count of @_summary.EntryCount days
+                                &middot; @(Math.Round(top.Count * 100.0 / _summary.EntryCount))%
+                            </MudText>
+                        }
+                        else
+                        {
+                            <MudText Typo="Typo.body2" Color="Color.Secondary" Class="mt-3">
+                                No moods recorded in range.
+                            </MudText>
+                        }
+                    </MudCardContent>
+                </MudCard>
+            </MudItem>
+        </MudGrid>
+
+        <MudCard Class="mb-4">
+            <MudCardContent>
+                <MudText Typo="Typo.h6">Word-count trend</MudText>
+                <MudText Typo="Typo.body2" Color="Color.Secondary" Class="mb-2">
+                    Average words per entry, @GroupingLabel &middot; @_summary.TotalWords words in total
+                </MudText>
+
+                @if (_summary.WordCountTrend.Count < 2)
                 {
-                    <div class="d-flex align-baseline lp-rule-row" style="gap: 12px;">
-                        <span class="lp-tone-key" style="@ToneFill(share.Category)"></span>
-                        <span class="lp-label" style="letter-spacing: 0.16em; color: var(--lp-ink);">
-                            @share.Category
-                        </span>
-                        <span class="lp-figure ml-auto" style="font-size: 22px;">@share.Count</span>
-                        <span class="lp-label" style="width: 44px; text-align: right;">@share.Percentage%</span>
-                    </div>
-                }
-            </section>
-
-            <section class="lp-block d-flex flex-column">
-                <div class="lp-label mb-1">Most frequent mood</div>
-
-                @if (_summary.MostFrequentMood is { } top)
-                {
-                    <div class="d-flex align-end my-auto" style="gap: 14px; padding: 18px 0;">
-                        <span class="lp-display" style="font-size: 52px; line-height: 0.85;">@top.Name</span>
-                        <span class="lp-swatch lp-swatch-round" style="@($"width:14px;height:14px;margin-bottom:10px;background:{LetterpressTheme.ColourFor(top.Name, top.Category)};")"></span>
-                    </div>
-                    <div class="lp-label" style="border-top: 1px solid var(--lp-rule); padding-top: 11px; letter-spacing: 0.08em;">
-                        @top.Count of @_summary.EntryCount days
-                        &middot; @(Math.Round(top.Count * 100.0 / _summary.EntryCount))%
-                    </div>
-                }
-                else
-                {
-                    <div class="lp-label my-auto">No moods recorded in range.</div>
-                }
-            </section>
-        </div>
-
-        <section class="lp-block mb-8">
-            <div class="lp-label mb-1">Word-count trend</div>
-            <div class="lp-label mb-4" style="letter-spacing: 0.04em;">
-                Average words per entry, @GroupingLabel &middot; @_summary.TotalWords words in total
-            </div>
-
-            @if (_summary.WordCountTrend.Count < 2)
-            {
-                <div class="lp-label">Not enough entries in this range to show a trend yet.</div>
-            }
-            else
-            {
-                @TrendChart()
-            }
-        </section>
-
-        <div class="lp-panel-pair">
-            <section class="lp-block">
-                <div class="lp-label mb-4">Most used tags</div>
-
-                @if (_summary.TopTags.Count == 0)
-                {
-                    <div class="lp-label">No tags used in this range.</div>
+                    <MudText Typo="Typo.body2" Color="Color.Secondary">
+                        Not enough entries in this range to show a trend yet.
+                    </MudText>
                 }
                 else
                 {
-                    @foreach (var tag in _summary.TopTags)
-                    {
-                        @Bar(tag.Name, tag.Count, _summary.TopTags.Max(t => t.Count))
-                    }
+                    @* MudChart wants the numbers as a double[] and the labels as a
+                       string[], so the trend gets pulled apart into two arrays. *@
+                    <MudChart ChartType="ChartType.Line"
+                              ChartSeries="@TrendSeries"
+                              ChartLabels="@TrendLabels"
+                              Width="100%"
+                              Height="260px" />
                 }
-            </section>
+            </MudCardContent>
+        </MudCard>
 
-            <section class="lp-block">
-                <div class="lp-label mb-4">Entries by category</div>
+        <MudGrid Class="mb-2">
+            <MudItem xs="12" md="6">
+                <MudCard Style="height: 100%;">
+                    <MudCardContent>
+                        <MudText Typo="Typo.h6" Class="mb-3">Most used tags</MudText>
 
-                @if (_summary.CategoryBreakdown.Count == 0)
-                {
-                    <div class="lp-label">No categories in this range.</div>
-                }
-                else
-                {
-                    @foreach (var category in _summary.CategoryBreakdown)
-                    {
-                        @Bar(category.Name, category.Count, _summary.CategoryBreakdown.Max(c => c.Count))
-                    }
-                }
-            </section>
-        </div>
+                        @if (_summary.TopTags.Count == 0)
+                        {
+                            <MudText Typo="Typo.body2" Color="Color.Secondary">
+                                No tags used in this range.
+                            </MudText>
+                        }
+                        else
+                        {
+                            var mostUsed = _summary.TopTags.Max(t => t.Count);
+
+                            @foreach (var tag in _summary.TopTags)
+                            {
+                                <div class="d-flex align-center justify-space-between">
+                                    <MudText Typo="Typo.body2">@tag.Name</MudText>
+                                    <MudText Typo="Typo.body2" Color="Color.Secondary">@tag.Count</MudText>
+                                </div>
+                                <MudProgressLinear Value="@Percent(tag.Count, mostUsed)"
+                                                   Color="Color.Primary" Class="mb-3" />
+                            }
+                        }
+                    </MudCardContent>
+                </MudCard>
+            </MudItem>
+
+            <MudItem xs="12" md="6">
+                <MudCard Style="height: 100%;">
+                    <MudCardContent>
+                        <MudText Typo="Typo.h6" Class="mb-3">Entries by category</MudText>
+
+                        @if (_summary.CategoryBreakdown.Count == 0)
+                        {
+                            <MudText Typo="Typo.body2" Color="Color.Secondary">
+                                No categories in this range.
+                            </MudText>
+                        }
+                        else
+                        {
+                            var biggest = _summary.CategoryBreakdown.Max(c => c.Count);
+
+                            @foreach (var category in _summary.CategoryBreakdown)
+                            {
+                                <div class="d-flex align-center justify-space-between">
+                                    <MudText Typo="Typo.body2">@category.Name</MudText>
+                                    <MudText Typo="Typo.body2" Color="Color.Secondary">@category.Count</MudText>
+                                </div>
+                                <MudProgressLinear Value="@Percent(category.Count, biggest)"
+                                                   Color="Color.Primary" Class="mb-3" />
+                            }
+                        }
+                    </MudCardContent>
+                </MudCard>
+            </MudItem>
+        </MudGrid>
 
         @if (_summary.MissedDays.Count > 0)
         {
-            <section class="lp-block mt-8">
-                <div class="lp-label mb-1">Missed days</div>
-                <div class="lp-label mb-4" style="letter-spacing: 0.04em;">
-                    @_summary.MissedDays.Count of @_summary.EligibleDays days have no entry
-                </div>
-                <div class="d-flex flex-wrap" style="gap: 7px;">
-                    @foreach (var day in _summary.MissedDays.OrderByDescending(d => d).Take(MissedDaysShown))
+            <MudCard>
+                <MudCardContent>
+                    <MudText Typo="Typo.h6">Missed days</MudText>
+                    <MudText Typo="Typo.body2" Color="Color.Secondary" Class="mb-3">
+                        @_summary.MissedDays.Count of @_summary.EligibleDays days have no entry
+                    </MudText>
+
+                    <div class="d-flex flex-wrap gap-2">
+                        @foreach (var day in _summary.MissedDays.OrderByDescending(d => d).Take(MissedDaysShown))
+                        {
+                            <MudButton Variant="Variant.Outlined" Size="Size.Small"
+                                       OnClick="@(() => OpenDate(day))">
+                                @day.ToString("d MMM")
+                            </MudButton>
+                        }
+                    </div>
+
+                    @if (_summary.MissedDays.Count > MissedDaysShown)
                     {
-                        <button type="button" class="lp-pill" style="@PillStyle()"
-                                @onclick="@(() => OpenDate(day))">
-                            @day.ToString("d MMM")
-                        </button>
+                        <MudText Typo="Typo.caption" Color="Color.Secondary" Class="d-block mt-3">
+                            Showing the @MissedDaysShown most recent.
+                        </MudText>
                     }
-                </div>
-                @if (_summary.MissedDays.Count > MissedDaysShown)
-                {
-                    <div class="lp-label mt-3">Showing the @MissedDaysShown most recent.</div>
-                }
-            </section>
+                </MudCardContent>
+            </MudCard>
         }
     }
 }
@@ -271,158 +322,22 @@ else
 
     private void OpenDate(DateTime date) => Navigation.NavigateTo($"/write/{date:yyyy-MM-dd}");
 
-    // Shades rather than colours - solid, half tone, and empty. Keeps the bar
-    // readable without adding another colour to the page.
-    private static string ToneFill(MoodCategory category) => category switch
-    {
-        MoodCategory.Positive => "background: var(--lp-ink); border-right: 1px solid var(--lp-ink);",
-        MoodCategory.Neutral => "background: var(--lp-halftone); border-right: 1px solid var(--lp-ink);",
-        _ => "background: transparent;"
-    };
+    // Width of a bar as a percentage of the biggest one in the list.
+    private static double Percent(int value, int max) =>
+        max <= 0 ? 0 : Math.Round(value * 100.0 / max, 1);
 
-    private static string PillStyle() =>
-        "border:1px solid var(--lp-rule);background:transparent;color:var(--lp-muted);";
-
-    // A ruled label, a hairline track filled in ink, and the value set as a figure.
-    private RenderFragment Bar(string label, int value, int max) => builder =>
-    {
-        var width = max <= 0 ? 0 : Math.Round(value * 100.0 / max, 1);
-
-        builder.OpenElement(0, "div");
-        builder.AddAttribute(1, "class", "lp-bar-row");
-
-        builder.OpenElement(2, "span");
-        builder.AddAttribute(3, "class", "lp-bar-label lp-label");
-        builder.AddContent(4, label);
-        builder.CloseElement();
-
-        builder.OpenElement(5, "span");
-        builder.AddAttribute(6, "class", "lp-bar-track");
-        builder.OpenElement(7, "span");
-        builder.AddAttribute(8, "class", "lp-bar-fill");
-        builder.AddAttribute(9, "style", $"width:{width.ToString(CultureInfo.InvariantCulture)}%;");
-        builder.CloseElement();
-        builder.CloseElement();
-
-        builder.OpenElement(10, "span");
-        builder.AddAttribute(11, "class", "lp-figure lp-bar-value");
-        builder.AddContent(12, value);
-        builder.CloseElement();
-
-        builder.CloseElement();
-    };
-
-    // Drawn as plain SVG instead of using MudChart. The design wants dashed
-    // gridlines, a shaded area and no axes, and it was easier to just draw it
-    // than to turn all the chart component's bits off.
-    private RenderFragment TrendChart() => builder =>
-    {
-        var points = _summary.WordCountTrend;
-        const double width = 640, height = 190, padX = 8, padTop = 14, padBottom = 26;
-
-        var max = Math.Max(1.0, points.Max(p => p.AverageWords));
-        var innerW = width - padX * 2;
-        var innerH = height - padTop - padBottom;
-
-        string N(double v) => v.ToString("0.#", CultureInfo.InvariantCulture);
-        double X(int i) => padX + (points.Count == 1 ? innerW / 2 : i * innerW / (points.Count - 1));
-        double Y(double v) => padTop + innerH - (v / max) * innerH;
-
-        var line = string.Join(" ", points.Select((p, i) =>
-            $"{(i == 0 ? "M" : "L")}{N(X(i))} {N(Y(p.AverageWords))}"));
-
-        var area = $"{line} L{N(X(points.Count - 1))} {N(padTop + innerH)} L{N(X(0))} {N(padTop + innerH)} Z";
-
-        builder.OpenElement(0, "svg");
-        builder.AddAttribute(1, "viewBox", $"0 0 {N(width)} {N(height)}");
-        builder.AddAttribute(2, "width", "100%");
-        builder.AddAttribute(3, "role", "img");
-        builder.AddAttribute(4, "aria-label",
-            $"Average words per entry across {points.Count} periods, peaking at {Math.Round(max)} words");
-        builder.AddAttribute(5, "style", "display:block;");
-
-        builder.AddMarkupContent(6,
-            "<defs><linearGradient id='lpTrend' x1='0' y1='0' x2='0' y2='1'>" +
-            "<stop offset='0%' stop-color='var(--lp-accent)' stop-opacity='.28'/>" +
-            "<stop offset='100%' stop-color='var(--lp-accent)' stop-opacity='0'/>" +
-            "</linearGradient></defs>");
-
-        foreach (var tick in new[] { 0.0, max / 2, max })
+    // MudChart takes one series of doubles plus the labels for the X axis.
+    private List<ChartSeries<double>> TrendSeries =>
+        new()
         {
-            builder.OpenElement(7, "line");
-            builder.AddAttribute(8, "x1", N(padX));
-            builder.AddAttribute(9, "x2", N(width - padX));
-            builder.AddAttribute(10, "y1", N(Y(tick)));
-            builder.AddAttribute(11, "y2", N(Y(tick)));
-            builder.AddAttribute(12, "stroke", "var(--lp-rule)");
-            builder.AddAttribute(13, "stroke-dasharray", "3 4");
-            builder.CloseElement();
-        }
+            new ChartSeries<double>
+            {
+                Name = "Average words",
+                Data = _summary.WordCountTrend.Select(point => point.AverageWords).ToArray()
+            }
+        };
 
-        builder.OpenElement(14, "path");
-        builder.AddAttribute(15, "d", area);
-        builder.AddAttribute(16, "fill", "url(#lpTrend)");
-        builder.CloseElement();
+    private string[] TrendLabels =>
+        _summary.WordCountTrend.Select(point => point.Label).ToArray();
 
-        builder.OpenElement(17, "path");
-        builder.AddAttribute(18, "d", line);
-        builder.AddAttribute(19, "fill", "none");
-        builder.AddAttribute(20, "stroke", "var(--lp-accent)");
-        builder.AddAttribute(21, "stroke-width", "2.4");
-        builder.AddAttribute(22, "stroke-linejoin", "round");
-        builder.AddAttribute(23, "stroke-linecap", "round");
-        builder.CloseElement();
-
-        // First and last only; a label per point is unreadable at this width.
-        var ends = points.Count > 1
-            ? new[] { (Index: 0, Anchor: "start"), (Index: points.Count - 1, Anchor: "end") }
-            : new[] { (Index: 0, Anchor: "middle") };
-
-        foreach (var end in ends)
-        {
-            builder.OpenElement(24, "text");
-            builder.AddAttribute(25, "x", N(X(end.Index)));
-            builder.AddAttribute(26, "y", N(height - 6));
-            builder.AddAttribute(27, "text-anchor", end.Anchor);
-            builder.AddAttribute(28, "fill", "var(--lp-faint)");
-            builder.AddAttribute(29, "style", "font-size:10px;letter-spacing:.14em;");
-            builder.AddContent(30, points[end.Index].Label.ToUpperInvariant());
-            builder.CloseElement();
-        }
-
-        builder.CloseElement();
-    };
-
-    // A label over a display-serif figure, as the design sets its statistics.
-    private RenderFragment Figure(string label, int value, string unit, bool accent) => builder =>
-    {
-        builder.OpenElement(0, "div");
-        builder.AddAttribute(1, "class", "lp-block");
-
-        builder.OpenElement(2, "div");
-        builder.AddAttribute(3, "class", "lp-label");
-        builder.AddAttribute(4, "style", "margin-bottom: 12px;");
-        builder.AddContent(5, label);
-        builder.CloseElement();
-
-        builder.OpenElement(6, "div");
-        builder.AddAttribute(7, "class", "d-flex align-baseline");
-        builder.AddAttribute(8, "style", "gap: 7px;");
-
-        builder.OpenElement(9, "span");
-        builder.AddAttribute(10, "class", "lp-figure");
-        builder.AddAttribute(11, "style",
-            "font-size: 48px;" + (accent && value > 0 ? "color: var(--lp-accent);" : string.Empty));
-        builder.AddContent(12, value);
-        builder.CloseElement();
-
-        builder.OpenElement(13, "span");
-        builder.AddAttribute(14, "class", "lp-label");
-        builder.AddAttribute(15, "style", "font-size: 0.55rem;");
-        builder.AddContent(16, unit);
-        builder.CloseElement();
-
-        builder.CloseElement();
-        builder.CloseElement();
-    };
 }

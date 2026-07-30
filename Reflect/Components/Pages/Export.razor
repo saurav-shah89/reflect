@@ -9,90 +9,81 @@
 <ScreenHeader Title="Export"
               Subtitle="Save a range of entries as a PDF you can keep, print or share" />
 
-<div class="lp-stagger" style="max-width: 660px;">
+<div style="max-width: 660px;">
 
-    <div class="lp-block mb-6">
-        <div class="d-flex align-center mb-5" style="gap: 12px;">
-            <span class="lp-monogram" style="width: 38px; height: 38px;">
-                <MudIcon Icon="@Icons.Material.Filled.Download" Size="Size.Small" />
-            </span>
-            <div>
-                <MudText Typo="Typo.h6">Export journal to PDF</MudText>
-                <div class="lp-label mt-1" style="letter-spacing: 0.04em;">
-                    A printable copy of your entries within a date range
-                </div>
+    <MudCard Class="mb-6">
+        <MudCardContent>
+            <MudText Typo="Typo.h6">Export journal to PDF</MudText>
+            <MudText Typo="Typo.body2" Color="Color.Secondary" Class="mb-4">
+                A printable copy of your entries within a date range
+            </MudText>
+
+            <MudDateRangePicker Label="Date range"
+                                DateRange="_dateRange"
+                                DateRangeChanged="OnRangeChangedAsync"
+                                Variant="Variant.Outlined"
+                                MaxDate="DateTime.Today"
+                                Margin="Margin.Dense"
+                                Class="mb-3"
+                                Style="max-width: 340px;" />
+
+            <div class="d-flex flex-wrap gap-2 mb-4">
+                @foreach (var preset in Presets)
+                {
+                    <MudButton Variant="Variant.Outlined" Size="Size.Small"
+                               OnClick="@(() => ApplyPresetAsync(preset.Days))">@preset.Label</MudButton>
+                }
+                <MudButton Variant="Variant.Outlined" Size="Size.Small"
+                           OnClick="ApplyEverythingAsync">Everything</MudButton>
             </div>
-        </div>
 
-        <div class="lp-label mb-2">Range</div>
-        <MudDateRangePicker DateRange="_dateRange"
-                            DateRangeChanged="OnRangeChangedAsync"
-                            Variant="Variant.Outlined"
-                            MaxDate="DateTime.Today"
-                            Margin="Margin.Dense"
-                            Class="mb-4"
-                            Style="max-width: 340px; border-radius: 0;" />
-
-        <div class="d-flex flex-wrap mb-5" style="gap: 7px;">
-            @foreach (var preset in Presets)
-            {
-                <button type="button" class="lp-pill" style="@PillStyle()"
-                        @onclick="@(() => ApplyPresetAsync(preset.Days))">@preset.Label</button>
-            }
-            <button type="button" class="lp-pill" style="@PillStyle()"
-                    @onclick="ApplyEverythingAsync">Everything</button>
-        </div>
-
-        @* The count is set as a figure, so the size of what is about to be
-           written is legible before committing to a file. *@
-        <div class="lp-block-light mb-5 d-flex align-baseline" style="gap: 10px;">
+            @* Shows how big the export will be before you commit to a file. *@
             @if (_isCounting)
             {
-                <span class="lp-label">Counting…</span>
+                <MudText Typo="Typo.body2">Counting…</MudText>
             }
             else
             {
-                <span class="lp-figure" style="font-size: 40px;">@_entriesInRange</span>
-                <span class="lp-label">
+                <MudText Typo="Typo.body2">
+                    <strong>@_entriesInRange</strong>
                     @(_entriesInRange == 1 ? "entry will be exported" : "entries will be exported")
-                </span>
+                </MudText>
             }
-        </div>
+        </MudCardContent>
 
-        <MudButton Variant="Variant.Filled"
-                   Color="Color.Primary"
-                   StartIcon="@Icons.Material.Filled.PictureAsPdf"
-                   Disabled="@(_isExporting || _entriesInRange == 0)"
-                   OnClick="ExportAsync"
-                   Style="border-radius: 0; padding: 11px 18px; font-size: 0.66rem; letter-spacing: 0.2em; text-transform: uppercase; font-weight: 600;">
-            @(_isExporting ? "Exporting…" : "Export PDF")
-        </MudButton>
+        <MudCardActions>
+            <MudButton Variant="Variant.Filled"
+                       Color="Color.Primary"
+                       StartIcon="@Icons.Material.Filled.PictureAsPdf"
+                       Disabled="@(_isExporting || _entriesInRange == 0)"
+                       OnClick="ExportAsync">
+                @(_isExporting ? "Exporting…" : "Export PDF")
+            </MudButton>
 
-        @if (_entriesInRange == 0 && !_isCounting)
-        {
-            <div class="lp-label mt-3" style="letter-spacing: 0.04em;">
-                No entries in this range, so there would be nothing to export.
-            </div>
-        }
-    </div>
+            @if (_entriesInRange == 0 && !_isCounting)
+            {
+                <MudText Typo="Typo.caption" Color="Color.Secondary">
+                    Nothing in this range to export.
+                </MudText>
+            }
+        </MudCardActions>
+    </MudCard>
 
     @if (_lastExportPath is not null)
     {
-        <div class="lp-block-light mb-6">
-            <div class="lp-label lp-label-accent mb-2">Saved</div>
-            <div class="lp-label mb-3" style="letter-spacing: 0.02em; word-break: break-all; text-transform: none;">
-                @_lastExportPath
-            </div>
-            <MudButton Variant="Variant.Outlined" Size="Size.Small"
+        <MudAlert Severity="Severity.Success" Class="mb-4">
+            <MudText Typo="Typo.body2" Style="word-break: break-all;">
+                Saved to @_lastExportPath
+            </MudText>
+            <MudButton Variant="Variant.Text" Size="Size.Small" Class="mt-1"
                        StartIcon="@Icons.Material.Filled.OpenInNew"
-                       OnClick="OpenLastExportAsync"
-                       Style="border-radius: 0;">Open it</MudButton>
-        </div>
+                       OnClick="OpenLastExportAsync">Open it</MudButton>
+        </MudAlert>
     }
 
     @if (_error is not null)
     {
-        <MudAlert Severity="Severity.Error" Style="border-radius: 0;">@_error</MudAlert>
+        <MudAlert Severity="Severity.Error">@_error</MudAlert>
     }
 </div>
 
@@ -237,7 +228,4 @@
             Snackbar.Add("Could not open it. The file is still saved at the path shown.", Severity.Warning);
         }
     }
-
-    private static string PillStyle() =>
-        "border:1px solid var(--lp-rule);background:transparent;color:var(--lp-muted);";
 }

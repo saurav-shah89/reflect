@@ -6,18 +6,6 @@
     <title>Reflect</title>
     <base href="/" />
     <link rel="stylesheet" href="_content/MudBlazor/MudBlazor.min.css" />
-
-    <!--
-      Letterpress typefaces, loaded without blocking render.
-      A plain stylesheet link in <head> blocks scripts, so on a machine with no
-      network the app would sit at "Loading…" waiting for a font. Loading it as
-      print media and promoting it on load means the page never waits: offline,
-      the stacks in app.css fall back to faces present on any desktop
-      (Didot/Georgia for display and prose, Consolas for chrome).
-    -->
-    <link rel="stylesheet" media="print" onload="this.media='all'; this.onload=null;"
-          href="https://fonts.googleapis.com/css2?family=Bodoni+Moda:ital,opsz,wght@0,6..96,400;0,6..96,500;0,6..96,600;1,6..96,400&family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;1,6..72,400&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
-
     <link rel="stylesheet" href="app.css" />
     <link rel="stylesheet" href="Reflect.styles.css" />
     <link rel="icon" href="data:,">

@@ -19,90 +19,70 @@ else if (_isLoading)
 }
 else
 {
-    <div class="lp-stagger">
-
-        <div class="lp-block mb-8">
+    <MudCard Class="mb-6">
+        <MudCardContent>
             @if (_todaysEntry is null)
             {
-                <div class="lp-label mb-2">Today</div>
-                <MudText Typo="Typo.h5">Nothing written yet</MudText>
-                <MudText Typo="Typo.body2" Class="mt-2 mb-4">
+                <MudText Typo="Typo.h6">Nothing written yet</MudText>
+                <MudText Typo="Typo.body2" Color="Color.Secondary">
                     You have not made an entry for today.
                 </MudText>
-                <MudButton Variant="Variant.Filled"
-                           Color="Color.Primary"
-                           StartIcon="@Icons.Material.Filled.Edit"
-                           Href="/write"
-                           Style="@ActionButtonStyle">Write today's entry</MudButton>
             }
             else
             {
-                <div class="lp-label mb-2">Today's entry</div>
-                <MudText Typo="Typo.h5">@_todaysEntry.Title</MudText>
-                <div class="d-flex align-baseline mt-2 mb-4" style="gap: 8px;">
-                    <span class="lp-figure" style="font-size: 30px;">@_todaysEntry.WordCount</span>
-                    <span class="lp-label">
-                        words &middot; last updated @_todaysEntry.UpdatedAt.ToString("HH:mm")
-                    </span>
-                </div>
-                <MudButton Variant="Variant.Outlined"
-                           Color="Color.Primary"
-                           StartIcon="@Icons.Material.Filled.Edit"
-                           Href="/write"
-                           Style="@ActionButtonStyle">Edit today's entry</MudButton>
+                <MudText Typo="Typo.h6">@_todaysEntry.Title</MudText>
+                <MudText Typo="Typo.body2" Color="Color.Secondary">
+                    @_todaysEntry.WordCount words &middot;
+                    last updated @_todaysEntry.UpdatedAt.ToString("HH:mm")
+                </MudText>
             }
-        </div>
+        </MudCardContent>
+        <MudCardActions>
+            <MudButton Variant="Variant.Filled"
+                       Color="Color.Primary"
+                       StartIcon="@Icons.Material.Filled.Edit"
+                       Href="/write">
+                @(_todaysEntry is null ? "Write today's entry" : "Edit today's entry")
+            </MudButton>
+        </MudCardActions>
+    </MudCard>
 
-        <div>
-            <div class="lp-label mb-1">Recent entries</div>
+    <MudText Typo="Typo.h6" Class="mb-2">Recent entries</MudText>
 
-            @if (_recent.Count == 0)
-            {
-                <div class="lp-rule-row">
-                    <MudText Typo="Typo.body2">
-                        No entries yet. Your journal starts when you write one.
-                    </MudText>
-                </div>
-            }
-            else
-            {
-                @* Clicking a row opens that day's entry. *@
+    @if (_recent.Count == 0)
+    {
+        <MudAlert Severity="Severity.Normal" Variant="Variant.Outlined">
+            No entries yet. Your journal starts when you write one.
+        </MudAlert>
+    }
+    else
+    {
+        @* Clicking a row opens that day's entry. *@
+        <MudPaper Outlined="true">
+            <MudList T="string" Class="py-0">
                 @foreach (var entry in _recent)
                 {
-                    <div class="lp-rule-row entry-card d-flex align-baseline justify-space-between"
-                         style="gap: 12px;"
-                         role="button"
-                         tabindex="0"
-                         @onclick="@(() => OpenDate(entry.EntryDate))"
-                         @onkeydown="@(e => OnRowKeyDown(e, entry.EntryDate))">
-                        @* Serif here to match the timeline. *@
-                        <MudText Typo="Typo.body1" Class="lp-display" Style="font-size: 1.12rem;">
-                            @entry.Title
-                        </MudText>
-                        <span class="lp-label" style="white-space: nowrap;">
-                            @entry.EntryDate.ToString("d MMM") &middot; @entry.WordCount words
-                        </span>
-                    </div>
+                    <MudListItem T="string" OnClick="@(() => OpenDate(entry.EntryDate))">
+                        <div class="d-flex align-center justify-space-between gap-3">
+                            <MudText Typo="Typo.body1">@entry.Title</MudText>
+                            <MudText Typo="Typo.caption" Color="Color.Secondary"
+                                     Style="white-space: nowrap;">
+                                @entry.EntryDate.ToString("d MMM") &middot; @entry.WordCount words
+                            </MudText>
+                        </div>
+                    </MudListItem>
                 }
-            }
+            </MudList>
+        </MudPaper>
+    }
 
-            <div class="d-flex align-baseline mt-5" style="gap: 8px;">
-                <span class="lp-figure" style="font-size: 30px;">@_totalEntries</span>
-                <span class="lp-label">
-                    @(_totalEntries == 1 ? "entry in your journal" : "entries in your journal")
-                </span>
-            </div>
-        </div>
-    </div>
+    <MudText Typo="Typo.body2" Color="Color.Secondary" Class="mt-4">
+        @_totalEntries @(_totalEntries == 1 ? "entry" : "entries") in your journal
+    </MudText>
 }
 
 @code {
     private const int RecentCount = 5;
-
-    // Square button with wide letter spacing, same as the other screens.
-    private const string ActionButtonStyle =
-        "border-radius: 0; padding: 11px 18px; font-size: 0.66rem; " +
-        "letter-spacing: 0.2em; text-transform: uppercase; font-weight: 600;";
 
     private JournalEntry? _todaysEntry;
     private IReadOnlyList<JournalEntry> _recent = Array.Empty<JournalEntry>();
@@ -111,16 +91,6 @@ else
     private string? _loadFailure;
 
     private void OpenDate(DateTime date) => Navigation.NavigateTo($"/write/{date:yyyy-MM-dd}");
-
-    // The rows are divs, not buttons, so Enter and Space have to be wired up
-    // manually or they can't be used from the keyboard.
-    private void OnRowKeyDown(KeyboardEventArgs args, DateTime date)
-    {
-        if (args.Key is "Enter" or " ")
-        {
-            OpenDate(date);
-        }
-    }
 
     protected override async Task OnInitializedAsync()
     {

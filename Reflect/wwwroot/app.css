@@ -1,614 +1,187 @@
 /*
- * Styles for the Letterpress design (from DailyScribe v3).
+ * Extra styles on top of MudBlazor.
  *
- * The colours and sizes come from Theme/LetterpressTheme.cs. Anything that
- * needs a CSS selector is here instead - the fonts, the rules, the paper grain
- * and the big page numbers.
+ * Most of the look comes from MudBlazor itself. This file is only for the few
+ * bits it doesn't cover - the Markdown preview, the calendar day boxes and the
+ * lock screen.
  *
- * The idea is that it should look like a printed page, so nothing is rounded
- * and there are no shadows anywhere.
+ * The colours use MudBlazor's own CSS variables so dark mode still works
+ * without writing every colour out twice.
  */
 
-/*
- * These pull from MudBlazor's own palette variables instead of repeating the
- * colours, so the theme file stays the only place they're written down and dark
- * mode follows automatically. Only the few MudBlazor has no equivalent for get
- * hardcoded, and those get swapped by .lp-dark.
- *
- * It uses its own .lp-dark class rather than MudBlazor's .mud-theme-dark
- * because the lock screen renders outside MudLayout - using MudBlazor's class
- * left the lock screen with dark text on light paper.
- */
-:root {
-    --lp-display: 'Bodoni Moda', Didot, Georgia, serif;
-    --lp-prose: 'Newsreader', Georgia, serif;
-    --lp-chrome: 'IBM Plex Mono', ui-monospace, Consolas, monospace;
+/* ---------- Markdown preview ---------- */
 
-    --lp-backdrop: var(--mud-palette-background);
-    --lp-paper: var(--mud-palette-surface);
-    --lp-paper-2: var(--mud-palette-background-gray);
-    --lp-ink: var(--mud-palette-text-primary);
-    --lp-muted: var(--mud-palette-text-secondary);
-    --lp-faint: var(--mud-palette-text-disabled);
-    --lp-rule: var(--mud-palette-lines-default);
-    --lp-rule-strong: var(--mud-palette-lines-inputs);
-    --lp-accent: var(--mud-palette-primary);
-
-    /* No MudBlazor equivalent. */
-    --lp-paper-3: #EBE8E1;
-    --lp-accent-soft: #F6E7E4;
-
-    --lp-grain-opacity: 0.05;
-    --lp-grain-blend: multiply;
-}
-
-.lp-dark {
-    --lp-paper-3: #20201D;
-    --lp-accent-soft: #241413;
-
-    /* Grain darkens light paper but must lift dark paper, or both go grey. */
-    --lp-grain-opacity: 0.055;
-    --lp-grain-blend: screen;
-}
-
-/* The lock screen renders outside MudLayout, so set the text colour here. */
-.lp-root {
-    color: var(--lp-ink);
-    min-height: 100vh;
-
-    /*
-     * Paper rather than the backdrop colour. In the original design the backdrop
-     * is the desktop behind a floating window, but here the app is the window.
-     */
-    background: var(--lp-paper);
-}
-
-/* ---------------------------------------------------------------- type ---- */
-
-body,
-.mud-typography,
-.mud-input,
-.mud-button-root,
-.mud-nav-link {
-    font-family: var(--lp-chrome);
-}
-
-/* Serif for headings and numbers. */
-.lp-display,
-.mud-typography-h1,
-.mud-typography-h2,
-.mud-typography-h3,
-.mud-typography-h4,
-.mud-typography-h5,
-.mud-typography-h6 {
-    font-family: var(--lp-display);
-    font-weight: 400;
-    letter-spacing: -0.025em;
-}
-
-.mud-typography-h4 {
-    font-size: 2.7rem;
-    line-height: 0.94;
-}
-
-.mud-typography-h5 { font-size: 1.7rem; }
-.mud-typography-h6 { font-size: 1.25rem; font-weight: 500; }
-
-/* The small uppercase label used all over the interface. */
-.lp-label {
-    font-family: var(--lp-chrome);
-    font-size: 0.6rem;
-    font-weight: 600;
-    letter-spacing: 0.2em;
-    text-transform: uppercase;
-    color: var(--lp-muted);
-}
-
-.lp-label-accent { color: var(--lp-accent); }
-
-/* Big numbers on the dashboard and calendar. */
-.lp-figure {
-    font-family: var(--lp-display);
-    font-weight: 400;
-    line-height: 0.86;
-    letter-spacing: -0.02em;
-}
-
-/* Prose - entry bodies and previews only. */
-.lp-prose,
+/* The preview pane sits next to the editor, so it gets a fixed height and
+   scrolls instead of pushing the page down as you type. */
 .markdown-preview {
-    font-family: var(--lp-prose);
-    font-size: 1.05rem;
-    line-height: 1.78;
-}
-
-/* ------------------------------------------------------------- structure -- */
-
-/*
- * The thick rule under a page title and the lighter one that starts a block.
- * Done as borders rather than separate elements so an empty section doesn't
- * leave a stray line behind.
- */
-.lp-rule-heavy { border-bottom: 2px solid var(--lp-ink); }
-.lp-block { border-top: 2px solid var(--lp-ink); padding-top: 0.85rem; }
-.lp-block-light { border-top: 1px solid var(--lp-rule-strong); padding-top: 0.85rem; }
-
-/* The short accent tick that precedes a subtitle. */
-.lp-tick::before {
-    content: "";
-    display: inline-block;
-    width: 16px;
-    height: 1px;
-    margin-right: 9px;
-    vertical-align: middle;
-    background: var(--lp-accent);
-}
-
-/* Square corners, thin border, no shadow. */
-.lp-card,
-.mud-paper-outlined {
-    border-radius: 0 !important;
-    box-shadow: none !important;
-}
-
-.lp-card {
-    background: var(--lp-paper);
-    border: 1px solid var(--lp-rule);
-}
-
-/*
- * The big faded day number behind the editor. It's only decoration, so it
- * ignores clicks and the element itself has aria-hidden on it.
- */
-.lp-folio {
-    position: absolute;
-    top: -1.4rem;
-    right: -0.5rem;
-    z-index: 0;
-    pointer-events: none;
-    user-select: none;
-    font-family: var(--lp-display);
-    font-size: 11rem;
-    line-height: 0.72;
-    letter-spacing: -0.06em;
-    color: var(--lp-ink);
-    opacity: 0.045;
-}
-
-.mud-theme-dark .lp-folio { opacity: 0.055; }
-
-/*
- * Paper grain - one inline SVG noise tile. The blend mode is different in dark
- * mode, otherwise it just makes everything look grey.
- */
-.lp-grain::after {
-    content: "";
-    position: fixed;
-    inset: 0;
-    z-index: 2000;
-    pointer-events: none;
-    opacity: var(--lp-grain-opacity);
-    mix-blend-mode: var(--lp-grain-blend);
-    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.82' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
-}
-
-/* ------------------------------------------------------------ navigation -- */
-
-.lp-nav .mud-nav-link {
-    font-size: 0.72rem;
-    letter-spacing: 0.16em;
-    text-transform: uppercase;
-    border-radius: 0;
-    border-bottom: 1px solid transparent;
-    padding-block: 0.55rem;
-}
-
-.lp-nav .mud-nav-link.active {
-    border-bottom-color: var(--lp-ink);
-    font-weight: 600;
-    background: transparent;
-}
-
-/* The 01, 02, 03 next to each nav item. */
-.lp-nav-num {
-    display: inline-block;
-    width: 20px;
-    font-size: 0.58rem;
-    color: var(--lp-muted);
-}
-
-.lp-nav .mud-nav-link.active .lp-nav-num { color: var(--lp-accent); }
-
-/* --------------------------------------------------------------- editor --- */
-
-/*
- * Writing area with the mood/tag column beside it. On smaller screens the side
- * column moves underneath instead of both being squashed, since a narrow
- * writing column is the last thing you want here.
- */
-.lp-editor-grid {
-    display: grid;
-    grid-template-columns: minmax(0, 1fr);
-    gap: 38px;
-    align-items: start;
-}
-
-@media (min-width: 1264px) {
-    .lp-editor-grid { grid-template-columns: minmax(0, 1fr) 280px; }
-}
-
-/* Thick line down the left of the writing area. */
-.lp-manuscript {
-    position: relative;
-    z-index: 1;
-    border-left: 2px solid var(--lp-ink);
-    padding-left: 26px;
-}
-
-.lp-editor-panes {
-    display: grid;
-    grid-template-columns: minmax(0, 1fr);
-    gap: 22px;
-}
-
-@media (min-width: 900px) {
-    .lp-editor-panes { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-}
-
-/* Borderless title box so it looks like a headline, not a form field. */
-.lp-title-input {
-    width: 100%;
-    border: none;
-    outline: none;
-    background: transparent;
-    color: var(--lp-ink);
-    font-family: var(--lp-display);
-    font-size: 34px;
-    font-weight: 400;
-    letter-spacing: -0.025em;
-    padding: 0;
-}
-
-.lp-title-input::placeholder {
-    color: var(--lp-faint);
-    opacity: 0.7;
-}
-
-/* ----------------------------------------------------------- mood chips --- */
-
-.lp-mood {
-    display: inline-flex;
-    align-items: center;
-    font-family: var(--lp-chrome);
-    font-size: 12.5px;
-    transition: border-color 140ms ease, background 140ms ease;
-}
-
-.lp-mood-main,
-.lp-mood-second,
-.lp-pill {
-    border: none;
-    background: transparent;
-    color: inherit;
-    font: inherit;
-    cursor: pointer;
-    padding: 6px 10px;
-}
-
-/*
- * The 2° marker is also the button for picking a secondary mood. The design
- * had this on right-click, but there's no keyboard equivalent for that, so I
- * made it a real button instead.
- */
-.lp-mood-second {
-    padding: 6px 8px 6px 2px;
-    font-size: 10px;
-    font-weight: 700;
-}
-
-.lp-mood-second:hover { text-decoration: underline; }
-
-.lp-pill {
-    font-family: var(--lp-chrome);
-    font-size: 12.5px;
-    padding: 6px 13px;
-    transition: border-color 140ms ease, background 140ms ease, color 140ms ease;
-}
-
-/* ------------------------------------------------------------ tag chips --- */
-
-.lp-tag-chip {
-    display: inline-flex;
-    align-items: center;
-    gap: 6px;
-    background: var(--lp-accent-soft);
-    color: var(--lp-accent);
-    border: 1px solid color-mix(in srgb, var(--lp-accent) 30%, transparent);
-    padding: 5px 8px 5px 11px;
-    font-family: var(--lp-chrome);
-    font-size: 12px;
-    font-weight: 600;
-}
-
-.lp-tag-remove {
-    border: none;
-    background: transparent;
-    color: inherit;
-    cursor: pointer;
-    font-size: 15px;
-    line-height: 1;
-    padding: 0 2px;
-}
-
-/* ------------------------------------------------------------ dashboard --- */
-
-/* The half-tone between solid ink and bare page. No MudBlazor equivalent. */
-:root { --lp-halftone: #B8B4AA; }
-.lp-dark { --lp-halftone: #4A4945; }
-
-.lp-stat-row {
-    display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 26px;
-}
-
-@media (min-width: 960px) {
-    .lp-stat-row { grid-template-columns: repeat(4, minmax(0, 1fr)); }
-}
-
-.lp-panel-pair {
-    display: grid;
-    grid-template-columns: minmax(0, 1fr);
-    gap: 34px;
-}
-
-@media (min-width: 960px) {
-    .lp-panel-pair { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-}
-
-/*
- * One bar split into solid, half tone and empty, so it shows the proportions
- * without needing three colours.
- */
-.lp-tonebar {
-    display: flex;
-    height: 30px;
-    border: 1px solid var(--lp-ink);
-}
-
-.lp-tonebar > div { transition: width 500ms cubic-bezier(0.2, 0.8, 0.2, 1); }
-
-.lp-tone-key {
-    flex: 0 0 auto;
-    width: 12px;
-    height: 12px;
-    border: 1px solid var(--lp-ink);
-}
-
-.lp-rule-row {
-    padding: 11px 0;
-    border-bottom: 1px solid var(--lp-rule);
-}
-
-/* Bar rows: ruled label, hairline track, figure. */
-.lp-bar-row {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    margin-bottom: 12px;
-}
-
-.lp-bar-label {
-    flex: 0 0 78px;
-    text-align: right;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-}
-
-.lp-bar-track {
-    flex: 1;
-    height: 14px;
-    border: 1px solid var(--lp-rule-strong);
-    overflow: hidden;
-}
-
-.lp-bar-fill {
-    display: block;
-    height: 100%;
-    background: var(--lp-ink);
-    transition: width 500ms cubic-bezier(0.2, 0.8, 0.2, 1);
-}
-
-.lp-bar-value {
-    flex: 0 0 30px;
-    font-size: 17px;
-    line-height: 1;
-    text-align: right;
-}
-
-/* ---------------------------------------------------------------- marks --- */
-
-/* Mood colour square. */
-.lp-swatch {
-    display: inline-block;
-    flex: 0 0 auto;
-    width: 8px;
-    height: 8px;
-}
-
-.lp-swatch-round { border-radius: 50%; }
-
-/* The mood coloured line under a day that has an entry. */
-.lp-day-mark {
-    display: block;
-    height: 4px;
-    width: 100%;
-    margin-top: 4px;
-}
-
-.calendar-has-entry {
-    position: relative;
-    font-weight: 600;
-}
-
-.calendar-has-entry::after {
-    content: "";
-    position: absolute;
-    bottom: 4px;
-    left: 50%;
-    transform: translateX(-50%);
-    width: 5px;
-    height: 5px;
-    background-color: var(--lp-accent);
-}
-
-/* ----------------------------------------------------------------- prose -- */
-
-.markdown-preview {
-    min-height: 26rem;
-    max-height: 26rem;
+    min-height: 24rem;
+    max-height: 24rem;
     overflow-y: auto;
     overflow-wrap: anywhere;
+    line-height: 1.6;
 }
 
-.markdown-preview > :first-child { margin-top: 0; }
+.markdown-preview > :first-child {
+    margin-top: 0;
+}
+
+.markdown-preview h1 { font-size: 1.6em; }
+.markdown-preview h2 { font-size: 1.35em; }
+.markdown-preview h3 { font-size: 1.15em; }
 
 .markdown-preview h1,
 .markdown-preview h2,
 .markdown-preview h3 {
-    font-family: var(--lp-display);
-    font-weight: 600;
-    letter-spacing: -0.02em;
     margin: 1rem 0 0.5rem;
 }
 
-.markdown-preview h1 { font-size: 1.7em; }
-.markdown-preview h2 { font-size: 1.35em; }
-.markdown-preview h3 { font-size: 1.15em; }
-
-.markdown-preview p { margin: 0 0 0.85em; }
+.markdown-preview p {
+    margin: 0 0 0.8em;
+}
 
 .markdown-preview ul,
-.markdown-preview ol { margin: 0.5em 0; padding-left: 1.4em; }
+.markdown-preview ol {
+    margin: 0.5em 0;
+    padding-left: 1.4em;
+}
 
-.markdown-preview li { margin: 0.2em 0; }
+.markdown-preview code,
+.markdown-preview pre {
+    background: var(--mud-palette-background-gray);
+    font-family: Consolas, monospace;
+}
 
 .markdown-preview code {
-    font-family: var(--lp-chrome);
-    background: var(--lp-paper-3);
     padding: 0.1rem 0.3rem;
     font-size: 0.9em;
 }
 
 .markdown-preview pre {
-    font-family: var(--lp-chrome);
-    background: var(--lp-paper-3);
     padding: 0.75rem;
     overflow-x: auto;
 }
 
-.markdown-preview pre code { background: none; padding: 0; }
+.markdown-preview pre code {
+    background: none;
+    padding: 0;
+}
 
 .markdown-preview blockquote {
-    border-left: 3px solid currentColor;
+    border-left: 3px solid var(--mud-palette-primary);
     margin: 0.7em 0;
     padding: 0.15em 0 0.15em 1em;
-    opacity: 0.75;
     font-style: italic;
 }
 
-.markdown-preview table { border-collapse: collapse; margin-bottom: 0.75em; }
+.markdown-preview table {
+    border-collapse: collapse;
+    margin-bottom: 0.75em;
+}
 
 .markdown-preview th,
 .markdown-preview td {
-    border: 1px solid var(--lp-rule);
+    border: 1px solid var(--mud-palette-lines-default);
     padding: 0.3rem 0.6rem;
 }
 
-/* Two-line clamp for the preview text under a list entry. */
+/* ---------- entry lists ---------- */
+
+/* Cuts the preview text off after two lines so every card is the same height. */
 .entry-snippet {
     display: -webkit-box;
     -webkit-line-clamp: 2;
     -webkit-box-orient: vertical;
     overflow: hidden;
-    font-family: var(--lp-prose);
-    opacity: 0.8;
+    color: var(--mud-palette-text-secondary);
 }
 
-/* Whole result card is clickable, so signal that on hover. */
+/* The whole card opens the entry, so show that it can be clicked. */
 .entry-card {
     cursor: pointer;
-    transition: border-color 140ms ease, transform 140ms ease;
 }
 
 .entry-card:hover {
-    border-color: var(--lp-accent);
-    transform: translateY(-2px);
+    border-color: var(--mud-palette-primary);
 }
 
-/* ------------------------------------------------------------ lock screen -- */
+/* ---------- calendar ---------- */
 
+.calendar-grid {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    gap: 6px;
+}
+
+/* Each day is a square button. Future days are dimmed rather than hidden so
+   the month keeps its shape. */
+.calendar-day {
+    aspect-ratio: 1 / 1;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    justify-content: space-between;
+    padding: 6px;
+    font-family: inherit;
+    font-size: 14px;
+    cursor: pointer;
+    background: transparent;
+    border: 1px solid var(--mud-palette-lines-default);
+    border-radius: 4px;
+}
+
+.calendar-day:hover:enabled {
+    background: var(--mud-palette-action-default-hover);
+}
+
+.calendar-day:disabled {
+    cursor: default;
+    opacity: 0.4;
+}
+
+.calendar-day.today {
+    border: 2px solid var(--mud-palette-primary);
+    font-weight: 700;
+}
+
+.calendar-day.in-streak {
+    border-color: var(--mud-palette-primary);
+}
+
+/* The mood colour of that day's entry, shown as a line under the number. */
+.day-mark {
+    display: block;
+    height: 4px;
+    width: 100%;
+    border-radius: 2px;
+}
+
+/* Little colour square used in the legend and next to mood names. */
+.mood-dot {
+    display: inline-block;
+    flex: 0 0 auto;
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+}
+
+/* ---------- lock screen ---------- */
+
+/* Renders on its own, without the drawer, so it has to centre itself. */
 .lock-screen {
     display: flex;
     align-items: center;
     justify-content: center;
     min-height: 100vh;
     padding: 1rem;
-    background: radial-gradient(140% 100% at 50% 0%, var(--lp-paper) 0%, var(--lp-backdrop) 62%);
 }
 
 .lock-panel {
     width: 100%;
     max-width: 380px;
-    background: transparent;
-    border: none;
     text-align: center;
 }
 
-/* The pressed monogram that opens the lock screen and the sidebar. */
-.lp-monogram {
-    display: grid;
-    place-items: center;
-    border: 1px solid var(--lp-ink);
-    font-family: var(--lp-display);
-    line-height: 1;
-    flex: 0 0 auto;
-}
-
-/* ------------------------------------------------------------- animation -- */
-
-@keyframes lp-ink {
-    from { opacity: 0; letter-spacing: 0.06em; }
-    to { opacity: 1; letter-spacing: -0.025em; }
-}
-
-@keyframes lp-rise {
-    from { opacity: 0; transform: translateY(14px); }
-    to { opacity: 1; transform: none; }
-}
-
-.lp-ink-in { animation: lp-ink 0.7s cubic-bezier(0.2, 0.85, 0.2, 1) both; }
-
-.lp-stagger > * { animation: lp-rise 0.5s cubic-bezier(0.2, 0.85, 0.2, 1) both; }
-.lp-stagger > *:nth-child(1) { animation-delay: 0.02s; }
-.lp-stagger > *:nth-child(2) { animation-delay: 0.09s; }
-.lp-stagger > *:nth-child(3) { animation-delay: 0.16s; }
-.lp-stagger > *:nth-child(4) { animation-delay: 0.23s; }
-.lp-stagger > *:nth-child(5) { animation-delay: 0.30s; }
-.lp-stagger > *:nth-child(6) { animation-delay: 0.37s; }
-
-/* Respect a stated preference for less motion. */
-@media (prefers-reduced-motion: reduce) {
-    .lp-ink-in,
-    .lp-stagger > *,
-    .entry-card {
-        animation: none;
-        transition: none;
-    }
-}
-
-/* -------------------------------------------------------------- platform -- */
+/* ---------- from the MAUI template ---------- */
 
 /* Error banner shown by the Blazor runtime on an unhandled exception. */
 #blazor-error-ui {
@@ -639,10 +212,14 @@ body,
     color: white;
 }
 
-.blazor-error-boundary::after { content: "An error has occurred."; }
+.blazor-error-boundary::after {
+    content: "An error has occurred.";
+}
 
 /* Keeps content clear of the notch on iOS. No effect on other platforms. */
-.status-bar-safe-area { display: none; }
+.status-bar-safe-area {
+    display: none;
+}
 
 @supports (-webkit-touch-callout: none) {
     .status-bar-safe-area {
@@ -650,7 +227,7 @@ body,
         position: sticky;
         top: 0;
         height: env(safe-area-inset-top);
-        background-color: var(--lp-paper-2);
+        background-color: var(--mud-palette-background-gray);
         width: 100%;
         z-index: 1;
     }

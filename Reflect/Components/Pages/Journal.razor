@@ -25,10 +25,9 @@ else
                   Immediate="true"
                   DebounceInterval="300"
                   Clearable="true"
-                  Class="mb-3"
-                  Style="border-radius: 0;" />
+                  Class="mb-3" />
 
-    <MudExpansionPanels Elevation="0" Class="mb-4">
+    <MudExpansionPanels Class="mb-4">
         <MudExpansionPanel Expanded="_filtersExpanded" ExpandedChanged="@(v => _filtersExpanded = v)">
             <TitleContent>
                 <div class="d-flex align-center gap-2">
@@ -110,7 +109,7 @@ else
     </MudExpansionPanels>
 
     <div class="d-flex align-center justify-space-between mb-2" style="width: 100%;">
-        <span class="lp-label">
+        <MudText Typo="Typo.body2" Color="Color.Secondary">
             @if (_isSearching)
             {
                 <span>Searching…</span>
@@ -119,12 +118,12 @@ else
             {
                 <span>@_result.TotalCount result@(_result.TotalCount == 1 ? "" : "s")</span>
             }
-        </span>
+        </MudText>
 
-        @* The component's own floating label collided with the result count on
-           this row, so the label is set as a ruled caption beside the control. *@
-        <div class="d-flex align-center" style="gap: 10px;">
-            <span class="lp-label">Per page</span>
+        @* The select's own floating label overlapped the result count on this
+           row, so the caption sits beside it instead. *@
+        <div class="d-flex align-center gap-2">
+            <MudText Typo="Typo.body2" Color="Color.Secondary">Per page</MudText>
             <MudSelect T="int" Value="_pageSize" ValueChanged="OnPageSizeChanged"
                        Dense="true" Variant="Variant.Text"
                        aria-label="Results per page"
@@ -155,41 +154,40 @@ else
         {
             <MudCard Outlined="true" Class="mb-3 entry-card" @onclick="@(() => OpenDate(entry.EntryDate))">
                 <MudCardContent>
-                    <div class="d-flex align-baseline justify-space-between" style="gap: 12px;">
+                    <div class="d-flex align-baseline justify-space-between gap-3">
                         <MudText Typo="Typo.h6">@entry.Title</MudText>
-                        <span class="lp-label" style="white-space: nowrap;">
+                        <MudText Typo="Typo.caption" Color="Color.Secondary" Style="white-space: nowrap;">
                             @entry.EntryDate.ToString("ddd d MMM yyyy")
-                        </span>
+                        </MudText>
                     </div>
 
-                    <div class="d-flex flex-wrap align-center gap-1 my-2">
-                        @* Mood colours come from the design rather than the component
-                           palette, so a mood always reads as the same hue. *@
-                        <span class="lp-label d-inline-flex align-center"
-                              style="@MoodChipStyle(entry.PrimaryMoodId, true)">
-                            <span class="lp-swatch mr-2" style="@($"background:{MoodColour(entry.PrimaryMoodId)};")"></span>
+                    <div class="d-flex flex-wrap align-center gap-2 my-2">
+                        @* The mood colours are my own rather than MudBlazor's, so a
+                           mood is always the same colour on every screen. *@
+                        <MudChip T="string" Size="Size.Small" Variant="Variant.Outlined">
+                            <span class="mood-dot mr-2"
+                                  style="@($"background:{MoodColour(entry.PrimaryMoodId)};")"></span>
                             @MoodName(entry.PrimaryMoodId)
-                        </span>
+                        </MudChip>
                         @foreach (var secondary in SecondaryMoods(entry))
                         {
-                            <span class="lp-label d-inline-flex align-center"
-                                  style="@MoodChipStyle(secondary, false)">
-                                <span class="lp-swatch mr-2" style="@($"background:{MoodColour(secondary)};")"></span>
+                            <MudChip T="string" Size="Size.Small" Variant="Variant.Outlined">
+                                <span class="mood-dot mr-2"
+                                      style="@($"background:{MoodColour(secondary)};")"></span>
                                 @MoodName(secondary)
-                            </span>
+                            </MudChip>
                         }
-                        @* The category sits in the same rank of chips as the moods, so it
-                           is set the same way rather than as a filled component chip. *@
                         @if (entry.CategoryId is int categoryId)
                         {
-                            <span class="lp-label d-inline-flex align-center" style="@CategoryChipStyle">
-                                @CategoryName(categoryId)
-                            </span>
+                            <MudChip T="string" Size="Size.Small" Color="Color.Primary"
+                                     Text="@CategoryName(categoryId)" />
                         }
                     </div>
 
                     <MudText Typo="Typo.body2" Class="entry-snippet">@Snippet(entry.Content)</MudText>
-                    <div class="lp-label mt-2">@entry.WordCount words</div>
+                    <MudText Typo="Typo.caption" Color="Color.Secondary" Class="d-block mt-2">
+                        @entry.WordCount words
+                    </MudText>
                 </MudCardContent>
             </MudCard>
         }
@@ -349,25 +347,11 @@ else
     private string MoodName(int moodId) =>
         _moodLookup.TryGetValue(moodId, out var mood) ? mood.Name : "Unknown";
 
-    // The design's colour for a mood, so tone reads at a glance.
+    // The colour set for a mood, so you can see the tone at a glance.
     private string MoodColour(int moodId) =>
         _moodLookup.TryGetValue(moodId, out var mood)
-            ? LetterpressTheme.ColourFor(mood.Name, mood.Category)
-            : LetterpressTheme.NeutralColour;
-
-    // Primary mood gets a tint of its colour, secondary just an outline.
-    private string MoodChipStyle(int moodId, bool isPrimary)
-    {
-        var colour = MoodColour(moodId);
-
-        return isPrimary
-            ? $"background:{colour}22;border:1px solid {colour};padding:3px 10px;color:var(--lp-ink);"
-            : $"border:1px solid {colour}66;padding:3px 10px;color:var(--lp-muted);";
-    }
-
-    // Neutral rule, so the mood colours stay the only hue in the row.
-    private const string CategoryChipStyle =
-        "border:1px solid var(--lp-rule-strong);padding:3px 10px;color:var(--lp-muted);";
+            ? AppTheme.ColourFor(mood.Name, mood.Category)
+            : AppTheme.NeutralColour;
 
     private string CategoryName(int categoryId) =>
         _categories.FirstOrDefault(c => c.Id == categoryId)?.Name ?? "Uncategorised";

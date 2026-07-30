@@ -1,101 +1,47 @@
 @inject IAnalyticsService Analytics
 @inject ILogger<NavMenu> Logger
 
-@* The sidebar reads as the masthead of a printed publication: monogram, title,
-   a numbered contents list, and the one running figure worth a headline. *@
-<div class="d-flex flex-column" style="height: 100%; padding: 22px 16px 18px;">
+@* The sidebar: a button for today's entry, the page links, and the streak at
+   the bottom. *@
+<div class="d-flex flex-column" style="height: 100%;">
 
-    <div class="d-flex align-center mb-6" style="gap: 11px; padding: 2px 6px;">
-        <div class="lp-monogram" style="width: 36px; height: 36px; font-size: 22px;">R</div>
-        <div>
-            <div class="lp-display" style="font-size: 22px; line-height: 1;">Reflect</div>
-            <div class="lp-label" style="font-size: 0.5rem; letter-spacing: 0.26em; margin-top: 5px;">
-                Est. MMXXVI
-            </div>
-        </div>
+    <div class="pa-4">
+        <MudButton Href="/write"
+                   Variant="Variant.Filled"
+                   Color="Color.Primary"
+                   FullWidth="true"
+                   StartIcon="@Icons.Material.Filled.Add">
+            Today's entry
+        </MudButton>
     </div>
 
-    <MudButton Href="/write"
-               Variant="Variant.Filled"
-               Color="Color.Primary"
-               FullWidth="true"
-               StartIcon="@Icons.Material.Filled.Add"
-               Class="mb-5"
-               Style="border-radius: 0; padding: 12px; font-size: 0.66rem; letter-spacing: 0.2em; text-transform: uppercase; font-weight: 600;">
-        Today's entry
-    </MudButton>
-
-    <div class="lp-label mb-2" style="padding-left: 4px;">Journal</div>
-
-    <MudNavMenu Class="lp-nav">
-        @foreach (var item in Destinations)
-        {
-            <MudNavLink Href="@item.Href" Match="@item.Match" Icon="@item.Icon">
-                <span class="lp-nav-num">@item.Number</span>@item.Label
-            </MudNavLink>
-        }
+    <MudNavMenu>
+        <MudNavLink Href="" Match="NavLinkMatch.All" Icon="@Icons.Material.Filled.Today">Today</MudNavLink>
+        <MudNavLink Href="write" Match="NavLinkMatch.Prefix" Icon="@Icons.Material.Filled.Edit">Write</MudNavLink>
+        <MudNavLink Href="calendar" Match="NavLinkMatch.Prefix" Icon="@Icons.Material.Filled.CalendarMonth">Calendar</MudNavLink>
+        <MudNavLink Href="journal" Match="NavLinkMatch.Prefix" Icon="@Icons.Material.Filled.MenuBook">Timeline</MudNavLink>
+        <MudNavLink Href="dashboard" Match="NavLinkMatch.Prefix" Icon="@Icons.Material.Filled.InsertChart">Dashboard</MudNavLink>
+        <MudNavLink Href="export" Match="NavLinkMatch.Prefix" Icon="@Icons.Material.Filled.PictureAsPdf">Export</MudNavLink>
+        <MudNavLink Href="settings" Match="NavLinkMatch.Prefix" Icon="@Icons.Material.Filled.Settings">Settings</MudNavLink>
     </MudNavMenu>
 
     <MudSpacer />
 
-    <div class="lp-block d-flex align-end justify-space-between mb-4" style="padding-bottom: 4px;">
-        <div>
-            <div class="lp-label" style="margin-bottom: 9px;">Current streak</div>
-            <div class="d-flex align-baseline" style="gap: 7px;">
-                <span class="lp-figure" style="font-size: 40px;">@_currentStreak</span>
-                <span class="lp-label" style="font-size: 0.55rem; letter-spacing: 0.18em;">
-                    @(_currentStreak == 1 ? "day" : "days")
-                </span>
-            </div>
+    <div class="pa-4">
+        <MudDivider Class="mb-3" />
+        <div class="d-flex align-center gap-2">
+            <MudIcon Icon="@Icons.Material.Filled.LocalFireDepartment"
+                     Color="@(_currentStreak > 0 ? Color.Primary : Color.Default)"
+                     Size="Size.Small" />
+            <MudText Typo="Typo.body2">
+                @_currentStreak @(_currentStreak == 1 ? "day" : "days") in a row
+            </MudText>
         </div>
-        <MudIcon Icon="@Icons.Material.Filled.LocalFireDepartment"
-                 Color="@(_currentStreak > 0 ? Color.Primary : Color.Default)"
-                 Size="Size.Small" />
-    </div>
-
-    <div class="d-flex" style="gap: 8px;">
-        <MudButton Variant="Variant.Outlined"
-                   FullWidth="true"
-                   OnClick="OnToggleTheme"
-                   StartIcon="@(IsDarkMode ? Icons.Material.Filled.LightMode : Icons.Material.Filled.DarkMode)"
-                   Style="border-radius: 0;">
-            @(IsDarkMode ? "Light" : "Dark")
-        </MudButton>
-
-        @if (IsLockConfigured)
-        {
-            <MudIconButton Icon="@Icons.Material.Filled.Lock"
-                           Variant="Variant.Outlined"
-                           OnClick="OnLockNow"
-                           aria-label="Lock the journal"
-                           title="Lock the journal"
-                           Style="border-radius: 0;" />
-        }
     </div>
 </div>
 
 @code {
-    [Parameter] public bool IsDarkMode { get; set; }
-
-    [Parameter] public bool IsLockConfigured { get; set; }
-
-    [Parameter] public EventCallback OnToggleTheme { get; set; }
-
-    [Parameter] public EventCallback OnLockNow { get; set; }
-
     private int _currentStreak;
-
-    // Numbered like a contents page.
-    private static readonly (string Number, string Label, string Href, NavLinkMatch Match, string Icon)[] Destinations =
-    {
-        ("01", "Today", "", NavLinkMatch.All, Icons.Material.Filled.Today),
-        ("02", "Write", "write", NavLinkMatch.Prefix, Icons.Material.Filled.Edit),
-        ("03", "Calendar", "calendar", NavLinkMatch.Prefix, Icons.Material.Filled.CalendarMonth),
-        ("04", "Timeline", "journal", NavLinkMatch.Prefix, Icons.Material.Filled.MenuBook),
-        ("05", "Dashboard", "dashboard", NavLinkMatch.Prefix, Icons.Material.Filled.InsertChart),
-        ("06", "Export", "export", NavLinkMatch.Prefix, Icons.Material.Filled.PictureAsPdf),
-        ("07", "Settings", "settings", NavLinkMatch.Prefix, Icons.Material.Filled.Settings),
-    };
 
     protected override async Task OnInitializedAsync()
     {
@@ -106,8 +52,8 @@
         }
         catch (Exception ex)
         {
-            // The streak is decoration on the navigation; failing to read it
-            // must not stop the rest of the app rendering.
+            // The streak is only shown in the sidebar; failing to read it must
+            // not stop the rest of the app rendering.
             Logger.LogError(ex, "Could not read the current streak for the sidebar");
         }
     }
